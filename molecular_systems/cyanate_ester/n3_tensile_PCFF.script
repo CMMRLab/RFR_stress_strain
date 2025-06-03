@@ -1,0 +1,125 @@
+#-------------------Input_variables-------------------
+# dir 1 means x # dir 2 means y # dir 3 means z
+variable        dir equal 1 
+
+variable        strain equal 0.15
+variable        strain_rate_s equal 2e8 # in 1/s
+variable        thermo_per_ps equal 5 # N-data points per picosecond for thermo logfile       
+
+variable        replicate string 5
+variable        system string AroCy_L10_pxld_96
+variable        FF string PCFF
+variable        myid string tensile_${dir}_${system}_replicate_${replicate}_FF_${FF}
+
+
+#-------------------Calculated_variables-------------------
+timestep        1.0
+variable        strain_rate_fs equal ${strain_rate_s}*1e-15 # in 1/fs
+variable        totaltime equal ${strain}/${strain_rate_fs} # total time in femtoseconds
+variable        steps equal ${totaltime}/dt
+variable        eeng equal time*${strain_rate_fs}
+variable        etrue equal ln(1+v_eeng)
+
+
+#-------------------Initialization-------------------
+units           real
+dimension       3
+boundary        p p p
+newton          on
+atom_style      full
+
+
+#-------------------Force_field-------------------
+label           start
+bond_style      class2
+angle_style     class2
+dihedral_style  class2
+improper_style  class2
+special_bonds   lj/coul 0 0 1
+neighbor        2.0 bin
+neigh_modify    delay 0 every 1 check yes one 5000 page 100000
+
+kspace_style    pppm 1.0e-4
+pair_style      lj/class2/coul/long 12.0
+pair_modify     mix sixthpower
+
+read_data       relax_AroCy_L10_pxld_96_PCFF_replicate_5_FF_PCFF.data
+
+
+#------------Initialization (may not always be needed)----------------------
+#fix             1 all nve/limit 0.1
+#run             20000 # 0.01ns = 10ps
+#write_data      ${myid}_initialization.data
+#unfix           1
+
+
+#-------------------Compute log and restart frequency-------------------
+variable         Time equal step*dt/1000 #time in picoseconds
+variable         msteps equal 1000/dt/${thermo_per_ps}
+variable         nsteps equal round(v_msteps)
+
+
+#-------------------Fixes-------------------
+velocity        all create 298 4928459 dist gaussian
+if "${dir} == 1" then &
+  "fix          1 all npt temp 298 298 $(100*dt) y 1.0 1.0 $(1000*dt) z 1.0 1.0 $(1000*dt)" &
+  "fix          2 all deform 1 x erate ${strain_rate_fs}"
+
+if "${dir} == 2" then &
+  "fix          1 all npt temp 298 298 $(100*dt) x 1.0 1.0 $(1000*dt) z 1.0 1.0 $(1000*dt)" &
+  "fix          2 all deform 1 y erate ${strain_rate_fs}"
+
+if "${dir} == 3" then &
+  "fix          1 all npt temp 298 298 $(100*dt) x 1.0 1.0 $(1000*dt) y 1.0 1.0 $(1000*dt)" &
+  "fix          2 all deform 1 z erate ${strain_rate_fs}"
+
+
+#-------------------Calculate_strains-------------------
+variable        tmp equal lx
+variable        lx0 equal ${tmp}
+variable        tmp equal ly
+variable        ly0 equal ${tmp}
+variable        tmp equal lz
+variable        lz0 equal ${tmp}
+variable        eengx equal (lx-${lx0})/${lx0}
+variable        eengy equal (ly-${ly0})/${ly0}
+variable        eengz equal (lz-${lz0})/${lz0}
+variable        etruex equal ln(1+v_eengx)
+variable        etruey equal ln(1+v_eengy)
+variable        etruez equal ln(1+v_eengz)
+
+
+#-------------------Calculate_stresses-------------------
+compute        p all pressure 1_temp
+variable       sxx equal -0.101325*c_p[1] #in MPa
+variable       syy equal -0.101325*c_p[2] #in MPa
+variable       szz equal -0.101325*c_p[3] #in MPa
+variable       sxy equal -0.101325*c_p[4] #in MPa
+variable       sxz equal -0.101325*c_p[5] #in MPa
+variable       syz equal -0.101325*c_p[6] #in MPa
+
+fix            sxx_ave all ave/time 1 ${nsteps} ${nsteps} v_sxx
+fix            syy_ave all ave/time 1 ${nsteps} ${nsteps} v_syy
+fix            szz_ave all ave/time 1 ${nsteps} ${nsteps} v_szz
+fix            sxy_ave all ave/time 1 ${nsteps} ${nsteps} v_sxy
+fix            sxz_ave all ave/time 1 ${nsteps} ${nsteps} v_sxz
+fix            syz_ave all ave/time 1 ${nsteps} ${nsteps} v_syz
+
+
+#-------------------Outputs-------------------
+thermo         ${nsteps}
+log            ${myid}.log.lammps
+thermo_style   custom step temp pe ke etotal press pxx pyy pzz v_etrue v_eengx v_eengy v_eengz v_etruex v_etruey v_etruez & 
+               f_sxx_ave f_syy_ave f_szz_ave f_sxy_ave f_sxz_ave f_syz_ave lx ly lz v_dir vol density ebond eangle edihed &
+               eimp evdwl ecoul elong epair v_Time
+
+restart        ${nsteps} rst1.a.${myid} rst2.a.${myid}
+dump           6 all atom 10000 dump.${myid} #every picosecond
+dump_modify    6 scale no sort id
+
+#-------------------Run-------------------
+run            ${steps}
+
+#-------------------Wrap up-------------------
+write_restart  ${myid}.restart
+write_data     ${myid}.data
