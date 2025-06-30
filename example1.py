@@ -248,22 +248,27 @@ if __name__ == "__main__":
     # Step2: First backwards response (br1 - applying minxhi and maxxhi accordingly)
     min_strain_br1 = min(strain)
     max_strain_br1 = fr1_max_fringe - minxhi # use minxhi to set the "span" of the smallest linear region acceptable
-    reduced_strain = strain[0:fr1_max_index]
-    reduced_stress = filtered_stress[0:fr1_max_index]
+    fr1_max_index_absolute = np.argmin(np.abs(strain - fr1_max_fringe))
+    reduced_strain = strain[0:fr1_max_index_absolute]
+    reduced_stress = filtered_stress[0:fr1_max_index_absolute]
+
     br1_fringe, br1_slopes = rfr.compute_fringe_slope(reduced_strain, reduced_stress, min_strain=min_strain_br1, max_strain=max_strain_br1, direction='reverse')
     br1_max_index = np.argmax(br1_slopes)
     br1_max_slope = br1_slopes[br1_max_index]
     br1_max_fringe = br1_fringe[br1_max_index]
+    br1_max_index_absolute = np.argmin(np.abs(strain - br1_max_fringe))
     
     # Step3: Second forward response (fr2 - applying minxhi and maxxhi accordingly)
     min_strain_fr2 = min_strain_fr1 + br1_max_fringe
     max_strain_fr2 = max_strain_fr1 + br1_max_fringe
-    reduced_strain = strain[br1_max_index:-1]
-    reduced_stress = filtered_stress[br1_max_index:-1]
+    reduced_strain = strain[br1_max_index_absolute:-1]
+    reduced_stress = filtered_stress[br1_max_index_absolute:-1]
+    
     fr2_fringe, fr2_slopes = rfr.compute_fringe_slope(reduced_strain, reduced_stress, min_strain=min_strain_fr2, max_strain=max_strain_fr2, direction='forward')
     fr2_max_index = np.argmax(fr2_slopes)
     fr2_max_slope = fr2_slopes[fr2_max_index]
     fr2_max_fringe = fr2_fringe[fr2_max_index]
+    fr2_max_index_absolute = np.argmin(np.abs(strain - fr2_max_fringe))
     
     # Set linear region bounds xlo and xhi from the 3 step FBF method
     xlo = br1_max_fringe
