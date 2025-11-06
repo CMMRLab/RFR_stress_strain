@@ -302,7 +302,7 @@ if __name__ == "__main__":
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12.5, 9))
 
     ax1.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    ax1.plot(strain, filtered_stress, '-', lw=4, color='#2c7fb8ff', label='Filtered data')
+    ax1.plot(strain, filtered_stress, '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
     ax1.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax1.set_xlabel('True Strain', fontsize=fs)
     ax1.set_ylabel('True Stress (MPa)', fontsize=fs)
