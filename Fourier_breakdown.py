@@ -292,16 +292,18 @@ if __name__ == "__main__":
     # Set xlimits
     delta = 0.01
     xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta)
+    xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta+0.1)
     
     # Set fontsize
-    fs = 14
+    fs = 12
+    legend_fs_scale = 0.75
     
     # Start plotting data
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 8))
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12.5, 9))
 
     ax1.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    ax1.plot(strain, filtered_stress, '-', lw=2, color='#2c7fb8ff', label='Filtered data')
-    ax1.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.65*fs)
+    ax1.plot(strain, filtered_stress, '-', lw=4, color='#2c7fb8ff', label='Filtered data')
+    ax1.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax1.set_xlabel('True Strain', fontsize=fs)
     ax1.set_ylabel('True Stress (MPa)', fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
@@ -312,7 +314,7 @@ if __name__ == "__main__":
         #ax2.plot(wn_stress, power_stress, 'o', ms=8, color='#ff9d3aff', label='Critical frequency\n({:.4f}, {:.4f})'.format(wn_stress, power_stress))
         ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Average power={:.4f}'.format(mean_stress_psd))
         ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Critical frequency={:.4f}'.format(wn_stress))
-        ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0), fancybox=True, ncol=1, fontsize=0.65*fs)
+        ax2.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax2.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
         ax2.set_ylabel('Power Spectral Density', fontsize=fs)
         ax2.tick_params(axis='both', which='major', labelsize=fs)
@@ -322,17 +324,20 @@ if __name__ == "__main__":
     color_index = 0
     ax3.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
     comp_wave = np.zeros_like(stress)
-    for i in range(wn_index+1):
+    lo = 0
+    hi = wn_index
+    for i in range(lo, hi+1):
         wave = FFT_breakdown(strain, stress, [i])
         comp_wave += wave
         label = 'PSD index: {}'.format(i)
         if i == 0: label += ' (DC-offset)'
+        if i == wn_index: label += ' (Critical frequency)'
         color, color_index = walk_colors(color_index, colors)
         ax3.plot(strain, wave, '-', lw=2, color=color, label=label)
         ax2.plot(wns_stress[i], psd_stress[i], 'o', ms=8, color=color)
-    ax3.plot(strain, comp_wave, '-', lw=4, color='#2c7fb8ff', label='Summed waves')
+    ax3.plot(strain, comp_wave, '-', lw=4, color='#2c7fb8ff', label='Summed waves (indexes {}-{})'.format(lo, hi))
 
-    ax3.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.65*fs)
+    ax3.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax3.set_xlabel('True Strain', fontsize=fs)
     ax3.set_ylabel('True Stress (MPa)', fontsize=fs)
     ax3.tick_params(axis='both', which='major', labelsize=fs)
@@ -340,16 +345,18 @@ if __name__ == "__main__":
 
     ax4.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
     comp_wave = np.zeros_like(stress)
-    for i in range(wn_index+1, 2*(wn_index+1)):
+    lo = int(wn_index+1)
+    hi = int(3*wn_index)
+    for i in range(lo, hi+1):
         wave = FFT_breakdown(strain, stress, [i])
         comp_wave += wave
         label = 'PSD index: {}'.format(i)
         color, color_index = walk_colors(color_index, colors)
         ax4.plot(strain, wave, '-', lw=2, color=color, label=label)
         ax2.plot(wns_stress[i], psd_stress[i], 'o', ms=8, color=color)
-    ax4.plot(strain, comp_wave, '-', lw=4, color='#2c7fb8ff', label='Summed waves')
+    ax4.plot(strain, comp_wave, '-', lw=4, color='#2c7fb8ff', label='Summed waves (indexes {}-{})'.format(lo, hi))
 
-    ax4.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.65*fs)
+    ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax4.set_xlabel('True Strain', fontsize=fs)
     ax4.set_ylabel('True Stress (MPa)', fontsize=fs)
     ax4.tick_params(axis='both', which='major', labelsize=fs)
