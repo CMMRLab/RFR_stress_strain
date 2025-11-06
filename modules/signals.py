@@ -71,6 +71,47 @@ def compute_PSD(xdata, ydata):
     wns = x_fft/(0.5*fs)
     return wns, psd
 
+def compute_ESD(xdata, ydata):
+    """
+    Function to compute the Energy Spectral Density (ESD) with
+    the X-values being the normalized frequencies.
+
+    Parameters
+    ----------
+    xdata : Numpy array.
+            Containing increasing independent variable data.
+            
+    ydata : Numpy array.
+            Containing dependent variable data.
+
+    Returns
+    -------
+    wns : Numpy array.
+          X-values for the PSD which have been normalized (x_fft is the 
+          non-normalized frequency components).
+          
+    psd : Numpy array.
+          Y-values for the PSD.
+
+    """
+    # Define sampling rate and number of data points
+    dx = np.mean(np.abs(np.diff(xdata)))
+    if dx != 0: 
+        fs = 1/dx # sampling rate
+    else: fs = xdata.shape[0]/(np.max(xdata) - np.min(xdata))
+    N = xdata.shape[0] # number of data points
+    d = 1/fs # sampling space
+
+    # Perform one sided FFT
+    fft_response = np.fft.rfft(ydata, axis=0, norm='backward')
+    x_fft = np.fft.rfftfreq(N, d=d)
+    y_fft = fft_response 
+    
+    # Compute the final PSD and normalized cutoff frequencies
+    psd = np.real( (y_fft*np.conjugate(y_fft))/(N**2) ) 
+    wns = x_fft/(0.5*fs)
+    return wns, psd
+
 
 def power_to_db(power, ref_power=1):
     """

@@ -49,7 +49,17 @@ import numpy as np
 # Inputs #
 ##########
 # logfile to read in
-logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
+logfile = 'logfiles/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF.log.lammps'
+strain_direction = 'x'
+
+# logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
+# strain_direction = 'z'
+
+# logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
+# strain_direction = 'y'
+
+# logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
+# strain_direction = 'x'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
@@ -71,8 +81,7 @@ keywords = ['Step']
 sections = 1
 
 
-# Set strain direction of 'x' or 'y' or 'z'
-strain_direction = 'z'
+
 
 
 # Regression fringe response settings
@@ -88,7 +97,7 @@ strain_direction = 'z'
 # linear region to search as the "wiggles" can maximize the fringe-slope response at fairly large strains. Examples:
 #   maxxhi=0.03
 #   maxxhi=0.05
-minxhi = 0.0025
+minxhi = 0.0000
 maxxhi = 0.0000
 
 
@@ -286,57 +295,13 @@ if __name__ == "__main__":
     print('{:<50} {}'.format("Computed Young's modulus: ", youngs_modulus_coeffs[1]))
     
     
-    #--------------------------------------------#
-    # Compute the yield point and yield strength #
-    #--------------------------------------------#
-    # Step1: Compute the 2nd derivative from the end of the linear region to the max strain
-    reduced_fringe = fr2_fringe[fr2_max_index:-1]
-    reduced_slopes = fr2_slopes[fr2_max_index:-1]
-    dstrain, dslopes1, dslopes2 = rfr.compute_derivative(fr2_fringe, fr2_slopes)
-    
-    # Step2: Find peaks and valleys of the 2nd derivative using tuned standard deviations
-    prominence = np.std(dslopes2)/3
+    #---------------------------------------------#
+    # Testing 2nd derivative for 1st forward pass #
+    #---------------------------------------------#
+    prominence = None
+    dstrain, dslopes1, dslopes2 = rfr.compute_derivative(fr1_fringe, fr1_slopes)
     xpeaks, ypeaks, xvalleys, yvalleys = rfr.find_peaks_and_valleys(dstrain, dslopes2, prominence=prominence)
     
-    # Step3: Use first valley with respect to strain as the yield point (if any valleys exist)
-    yield_index, x_yield, y_yield, x_yield_d2, y_yield_d2 = None, None, None, None, None
-    if np.any(xvalleys) and np.any(yvalleys):
-        x_yield_d2 = xvalleys[0]
-        y_yield_d2 = yvalleys[0]
-        yield_index = np.min(np.where(strain == x_yield_d2)[0])
-        x_yield = strain[yield_index]
-        y_yield = filtered_stress[yield_index]
-        print('{:<50} {}'.format("Computed yield strength: ", y_yield))
-        
-    
-    #-----------------------------#
-    # Compute the Poisson's ratio #
-    #-----------------------------#
-    # Will use the min/max of index values to set bounds for linear regression for 
-    # Poisson's ratio, as "yield_index" may not exist. If it does not exist, the 
-    # region will be set by the linear region of the stress-strain curve
-    indexes = [xlo_index, xhi_index]
-    if yield_index is not None: indexes.append(yield_index)
-    lo_index = min(indexes)
-    hi_index = max(indexes)
-    
-    # Compute nu_1 based on maximum span of bounds (set from above)
-    nu_1_coeffs = np.polynomial.polynomial.polyfit(strain[lo_index:hi_index+1], filtered_trans1[lo_index:hi_index+1], 1)
-    nu_1_x = np.array([strain[lo_index], strain[hi_index]])
-    nu_1_y = nu_1_coeffs[1]*nu_1_x + nu_1_coeffs[0]
-    print('{:<50} {}'.format("Computed Poisson's ratio nu_1: ", -nu_1_coeffs[1]))
-    
-    # Compute nu_2 based on maximum span of bounds (set from above)
-    nu_2_coeffs = np.polynomial.polynomial.polyfit(strain[lo_index:hi_index+1], filtered_trans2[lo_index:hi_index+1], 1)
-    nu_2_x = np.array([strain[lo_index], strain[hi_index]])
-    nu_2_y = nu_2_coeffs[1]*nu_2_x + nu_2_coeffs[0]
-    print('{:<50} {}'.format("Computed Poisson's ratio nu_2: ", -nu_2_coeffs[1]))
-    
-    # Set a map from LAMMPS Variables to strain direciton names
-    lmp2dir = {'v_etruex': 'X-direction',
-               'v_etruey': 'Y-direction',
-               'v_etruez': 'Z-direction',
-               }
     
     
     #---------------------------------#
@@ -350,11 +315,9 @@ if __name__ == "__main__":
     fs = 14
     
     # Start plotting data
-    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(8, 10))
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
     ax1.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
     ax1.plot(strain, filtered_stress, '-', lw=2, color='#2c7fb8ff', label='Filtered data')
-    if x_yield_d2 is not None and y_yield_d2 is not None:
-        ax1.plot(x_yield, y_yield, 'o', ms=8, color='tab:purple', label='Yield point (x,y)\n({:.4f}, {:.4f})'.format(x_yield, y_yield))
     ax1.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, color='#ff9d3aff', label="Young's modulus\n{:.4f}".format(youngs_modulus_coeffs[1]))
     ax1.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
     ax1.set_xlabel('True Strain', fontsize=fs)
@@ -362,64 +325,89 @@ if __name__ == "__main__":
     ax1.tick_params(axis='both', which='major', labelsize=fs)
     ax1.set_xlim(xlimits)
     
-    t1_column = trans1_column.replace('v_', '') # Remove LAMMPS varaible prefix
-    t1_column = lmp2dir[trans1_column]
-    ax3.plot(strain, trans1, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    ax3.plot(strain, filtered_trans1, '-', lw=2, color='#2c7fb8ff', label='Filtered data')
-    ax3.plot(nu_1_x, nu_1_y, '-', lw=4, color='#ff9d3aff', label="Poisson's ratio={:.4f}".format(-nu_1_coeffs[1]))
-    ax3.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax3.set_xlabel('True strain', fontsize=fs)
-    ax3.set_ylabel('Transverse strain ({})'.format(t1_column), fontsize=fs)
+    ax2.plot(fr1_fringe, fr1_slopes, '-', lw=2, color='tab:cyan', label='1st forward fringe response')
+    ax2.plot(fr1_max_fringe, fr1_max_slope, 'o', ms=8, color='tab:blue', label='Maximum 1st forward')
+    ax2.plot(br1_fringe, br1_slopes, '-', lw=2, color='lime', label='1st backward fringe response')
+    ax2.plot(br1_max_fringe, br1_max_slope, 'o', ms=8, color='tab:green', label='Maximum 1st backward')
+    ax2.plot(fr2_fringe, fr2_slopes, '-', lw=2, color='violet', label='2nd forward fringe response')
+    ax2.plot(fr2_max_fringe, fr2_max_slope, 'o', ms=8, color='tab:purple', label='Maximum 2nd forward')
+    ax2.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
+    ax2.set_xlabel('True Strain', fontsize=fs)
+    ax2.set_ylabel('Fringe response (MPa)', fontsize=fs)
+    ax2.tick_params(axis='both', which='major', labelsize=fs)
+    ax2.set_xlim(xlimits)
+    
+    
+    # ax3.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
+    # ax3.plot(strain, filtered_stress, '-', lw=2, color='#2c7fb8ff', label='Filtered data')
+    # ax3.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, color='#ff9d3aff', label="Young's modulus\n{:.4f}".format(youngs_modulus_coeffs[1]))
+    # ax3.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
+    # ax3.set_xlabel('True Strain', fontsize=fs)
+    # ax3.set_ylabel('True Stress (MPa)', fontsize=fs)
+    # ax3.tick_params(axis='both', which='major', labelsize=fs)
+    # ax3.set_xlim(xlimits)
+    
+    ax3.plot(fr1_fringe, fr1_slopes, '-', lw=2, color='tab:cyan', label='1st forward fringe response')
+    ax3.axvline(xlo, color='tab:blue', ls='--', lw=2, label='FBF-xlo')
+    ax3.axvline(xhi, color='darkblue', ls='--', lw=2, label='FRB-xhi')
+    
+    ax3.legend(loc='lower right', bbox_to_anchor=(0.5, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
+    ax3.set_xlabel('True Strain', fontsize=fs)
+    ax3.set_ylabel('Fringe response (MPa)', fontsize=fs, color='tab:cyan')
     ax3.tick_params(axis='both', which='major', labelsize=fs)
+    ax3.tick_params(axis='x', labelsize=fs, colors='black')
+    ax3.tick_params(axis='y', labelsize=fs, colors='tab:cyan')
     ax3.set_xlim(xlimits)
     
-    t2_column = trans2_column.replace('v_', '') # Remove LAMMPS varaible prefix
-    t2_column = lmp2dir[trans2_column]
-    ax5.plot(strain, trans2, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    ax5.plot(strain, filtered_trans2, '-', lw=2, color='#2c7fb8ff', label='Filtered data')
-    ax5.plot(nu_2_x, nu_2_y, '-', lw=4, color='#ff9d3aff', label="Poisson's ratio={:.4f}".format(-nu_2_coeffs[1]))
-    ax5.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax5.set_xlabel('True strain', fontsize=fs)
-    ax5.set_ylabel('Transverse strain ({})'.format(t2_column), fontsize=fs)
-    ax5.tick_params(axis='both', which='major', labelsize=fs)
-    ax5.set_xlim(xlimits)
+    ax3a = ax3.twinx()
+    ax3a.plot(dstrain, dslopes2, '-', lw=2, color='tab:purple', label='2nd derivative')
+    ax3a.plot(xpeaks, ypeaks, '*', ms=10, color='tab:pink', label='Local maxima')
+    ax3a.plot(xvalleys, yvalleys, 'o', ms=8, color='purple', label='Local minima')
+    ax3a.axhline(0, color='black', ls='--', lw=2, label='Zero')
     
-    if str(wn).startswith('op'):
-        ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$ for stress-strain')
-        ax2.plot(wn_stress, power_stress, 'o', ms=8, color='#ff9d3aff', label='Critical frequency\n({:.4f}, {:.4f})'.format(wn_stress, power_stress))
-        ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Average power={:.4f}'.format(mean_stress_psd))
-        ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0), fancybox=True, ncol=1, fontsize=0.75*fs)
-        ax2.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
-        ax2.set_ylabel('Power Spectral Density', fontsize=fs)
-        ax2.tick_params(axis='both', which='major', labelsize=fs)
-        ax2.set_xlim((-0.001, 0.03)) # Comment/uncomment for xlimits
-        ax2.set_ylim((-1*mean_stress_psd, 30*mean_stress_psd)) # Comment/uncomment for xlimits
+
+    ax3a.legend(loc='lower right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
+    ax3a.set_xlabel('True Strain', fontsize=fs)
+    ax3a.set_ylabel(r'$\frac{d^{2}(Fringe-Response)}{d(Strain)^{2}}$ (MPa)', fontsize=fs, color='tab:purple')
+    ax3a.tick_params(axis='both', which='major', labelsize=fs)
+    ax3a.tick_params(axis='y', labelsize=fs, colors='tab:purple')
+    ax3a.set_xlim(xlimits)
+
         
+
+    
+    
     ax4.plot(fr1_fringe, fr1_slopes, '-', lw=2, color='tab:cyan', label='1st forward fringe response')
-    ax4.plot(fr1_max_fringe, fr1_max_slope, 'o', ms=8, color='tab:blue', label='Maximum 1st forward')
-    ax4.plot(br1_fringe, br1_slopes, '-', lw=2, color='lime', label='1st backward fringe response')
-    ax4.plot(br1_max_fringe, br1_max_slope, 'o', ms=8, color='tab:green', label='Maximum 1st backward')
-    ax4.plot(fr2_fringe, fr2_slopes, '-', lw=2, color='violet', label='2nd forward fringe response')
-    ax4.plot(fr2_max_fringe, fr2_max_slope, 'o', ms=8, color='tab:purple', label='Maximum 2nd forward')
-    ax4.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
+    ax4.axvline(xlo, color='tab:blue', ls='--', lw=2, label='FBF-xlo')
+    ax4.axvline(xhi, color='darkblue', ls='--', lw=2, label='FRB-xhi')
+    
+    ax4.legend(loc='lower right', bbox_to_anchor=(0.5, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
     ax4.set_xlabel('True Strain', fontsize=fs)
-    ax4.set_ylabel('Fringe response (MPa)', fontsize=fs)
+    ax4.set_ylabel('Fringe response (MPa)', fontsize=fs, color='tab:cyan')
     ax4.tick_params(axis='both', which='major', labelsize=fs)
+    ax4.tick_params(axis='x', labelsize=fs, colors='black')
+    ax4.tick_params(axis='y', labelsize=fs, colors='tab:cyan')
     ax4.set_xlim(xlimits)
     
-    ax6.plot(dstrain, dslopes2, '-', lw=2,  color='tab:cyan', label='2nd derivative')
-    ax6.plot(xvalleys, yvalleys, 'o', ms=8, color='tab:blue', label='Local minima')
-    if x_yield_d2 is not None and y_yield_d2 is not None:
-        ax6.plot(x_yield_d2, y_yield_d2, 'o', ms=8, color='tab:purple', label='Yield point (x,y)\n({:.4f}, {:.4f})'.format(x_yield_d2, y_yield_d2))
-    ax6.axvline(xlo, color='tab:red', ls='--', lw=2, label='Linear-region xlo')
-    ax6.axvline(xhi, color='tab:red', ls='--', lw=2, label='Linear-region xhi')
-    ax6.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax6.set_xlabel('True Strain', fontsize=fs)
-    ax6.set_ylabel(r'$\frac{d^{2}(Fringe-Response)}{d(Strain)^{2}}$ (MPa)', fontsize=fs)
-    ax6.tick_params(axis='both', which='major', labelsize=fs)
-    ax6.set_xlim(xlimits)
+    ax4a = ax4.twinx()
+    ax4a.plot(dstrain, dslopes2, '-', lw=2, color='tab:purple', label='2nd derivative')
+    ax4a.plot(xpeaks, ypeaks, '*', ms=10, color='tab:pink', label='Local maxima')
+    ax4a.plot(xvalleys, yvalleys, 'o', ms=8, color='purple', label='Local minima')
+    ax4a.axhline(0, color='black', ls='--', lw=2, label='Zero')
+    
+
+    ax4a.legend(loc='lower right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
+    ax4a.set_xlabel('True Strain', fontsize=fs)
+    ax4a.set_ylabel(r'$\frac{d^{2}(Fringe-Response)}{d(Strain)^{2}}$ (MPa)', fontsize=fs, color='tab:purple')
+    ax4a.tick_params(axis='both', which='major', labelsize=fs)
+    ax4a.tick_params(axis='y', labelsize=fs, colors='tab:purple')
+    ax4a.set_xlim((-0.001, 1.5*xhi))
+    
+    
+
+
     
     fig.tight_layout()
     #plt.show()
-    basename = logfile[:logfile.rfind('.')]
+    basename = logfile[:logfile.rfind('.')] + '_FBF_vs_2D'
     fig.savefig(basename+'.jpeg', dpi=300)

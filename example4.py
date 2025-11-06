@@ -332,6 +332,12 @@ if __name__ == "__main__":
     nu_2_y = nu_2_coeffs[1]*nu_2_x + nu_2_coeffs[0]
     print('{:<50} {}'.format("Computed Poisson's ratio nu_2: ", -nu_2_coeffs[1]))
     
+    # Set a map from LAMMPS Variables to strain direciton names
+    lmp2dir = {'v_etruex': 'X-direction',
+               'v_etruey': 'Y-direction',
+               'v_etruez': 'Z-direction',
+               }
+    
     
     #---------------------------------#
     # Plot the results of this method #
@@ -357,6 +363,7 @@ if __name__ == "__main__":
     ax1.set_xlim(xlimits)
     
     t1_column = trans1_column.replace('v_', '') # Remove LAMMPS varaible prefix
+    t1_column = lmp2dir[trans1_column]
     ax3.plot(strain, trans1, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
     ax3.plot(strain, filtered_trans1, '-', lw=2, color='#2c7fb8ff', label='Filtered data')
     ax3.plot(nu_1_x, nu_1_y, '-', lw=4, color='#ff9d3aff', label="Poisson's ratio={:.4f}".format(-nu_1_coeffs[1]))
@@ -367,6 +374,7 @@ if __name__ == "__main__":
     ax3.set_xlim(xlimits)
     
     t2_column = trans2_column.replace('v_', '') # Remove LAMMPS varaible prefix
+    t2_column = lmp2dir[trans2_column]
     ax5.plot(strain, trans2, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
     ax5.plot(strain, filtered_trans2, '-', lw=2, color='#2c7fb8ff', label='Filtered data')
     ax5.plot(nu_2_x, nu_2_y, '-', lw=4, color='#ff9d3aff', label="Poisson's ratio={:.4f}".format(-nu_2_coeffs[1]))
@@ -379,7 +387,7 @@ if __name__ == "__main__":
     if str(wn).startswith('op'):
         ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$ for stress-strain')
         ax2.plot(wn_stress, power_stress, 'o', ms=8, color='#ff9d3aff', label='Critical frequency\n({:.4f}, {:.4f})'.format(wn_stress, power_stress))
-        ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Mean power={:.4f}'.format(mean_stress_psd))
+        ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Average power={:.4f}'.format(mean_stress_psd))
         ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0), fancybox=True, ncol=1, fontsize=0.75*fs)
         ax2.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
         ax2.set_ylabel('Power Spectral Density', fontsize=fs)
