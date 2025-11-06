@@ -332,10 +332,11 @@ if __name__ == "__main__":
     nu_2_y = nu_2_coeffs[1]*nu_2_x + nu_2_coeffs[0]
     print('{:<50} {}'.format("Computed Poisson's ratio nu_2: ", -nu_2_coeffs[1]))
     
+    
     # Set a map from LAMMPS Variables to strain direciton names
-    lmp2dir = {'v_etruex': 'X-direction',
-               'v_etruey': 'Y-direction',
-               'v_etruez': 'Z-direction',
+    lmp2dir = {'v_etruex': 'X',
+               'v_etruey': 'Y',
+               'v_etruez': 'Z',
                }
     
     
@@ -348,6 +349,7 @@ if __name__ == "__main__":
     
     # Set fontsize
     fs = 14
+    label_rel_pos = (0.005, 0.99)
     
     # Start plotting data
     fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(8, 10))
@@ -357,10 +359,11 @@ if __name__ == "__main__":
         ax1.plot(x_yield, y_yield, 'o', ms=8, color='tab:purple', label='Yield point (x,y)\n({:.4f}, {:.4f})'.format(x_yield, y_yield))
     ax1.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, color='#ff9d3aff', label="Young's modulus\n{:.4f}".format(youngs_modulus_coeffs[1]))
     ax1.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax1.set_xlabel('True Strain', fontsize=fs)
-    ax1.set_ylabel('True Stress (MPa)', fontsize=fs)
+    ax1.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax1.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
     ax1.set_xlim(xlimits)
+    ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     t1_column = trans1_column.replace('v_', '') # Remove LAMMPS varaible prefix
     t1_column = lmp2dir[trans1_column]
@@ -368,10 +371,11 @@ if __name__ == "__main__":
     ax3.plot(strain, filtered_trans1, '-', lw=2, color='#2c7fb8ff', label='Filtered data')
     ax3.plot(nu_1_x, nu_1_y, '-', lw=4, color='#ff9d3aff', label="Poisson's ratio={:.4f}".format(-nu_1_coeffs[1]))
     ax3.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax3.set_xlabel('True strain', fontsize=fs)
-    ax3.set_ylabel('Transverse strain ({})'.format(t1_column), fontsize=fs)
+    ax3.set_xlabel(r'Axial True Strain, $\epsilon$', fontsize=fs)
+    ax3.set_ylabel(r'Transverse strain ({}), $\epsilon$'.format(t1_column), fontsize=fs)
     ax3.tick_params(axis='both', which='major', labelsize=fs)
     ax3.set_xlim(xlimits)
+    ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     t2_column = trans2_column.replace('v_', '') # Remove LAMMPS varaible prefix
     t2_column = lmp2dir[trans2_column]
@@ -379,10 +383,11 @@ if __name__ == "__main__":
     ax5.plot(strain, filtered_trans2, '-', lw=2, color='#2c7fb8ff', label='Filtered data')
     ax5.plot(nu_2_x, nu_2_y, '-', lw=4, color='#ff9d3aff', label="Poisson's ratio={:.4f}".format(-nu_2_coeffs[1]))
     ax5.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax5.set_xlabel('True strain', fontsize=fs)
-    ax5.set_ylabel('Transverse strain ({})'.format(t2_column), fontsize=fs)
+    ax5.set_xlabel(r'Axial True Strain, $\epsilon$', fontsize=fs)
+    ax5.set_ylabel(r'Transverse strain ({}), $\epsilon$'.format(t2_column), fontsize=fs)
     ax5.tick_params(axis='both', which='major', labelsize=fs)
     ax5.set_xlim(xlimits)
+    ax5.text(*label_rel_pos, '(e)', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     if str(wn).startswith('op'):
         ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$ for stress-strain')
@@ -394,6 +399,7 @@ if __name__ == "__main__":
         ax2.tick_params(axis='both', which='major', labelsize=fs)
         ax2.set_xlim((-0.001, 0.03)) # Comment/uncomment for xlimits
         ax2.set_ylim((-1*mean_stress_psd, 30*mean_stress_psd)) # Comment/uncomment for xlimits
+        ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         
     ax4.plot(fr1_fringe, fr1_slopes, '-', lw=2, color='tab:cyan', label='1st forward fringe response')
     ax4.plot(fr1_max_fringe, fr1_max_slope, 'o', ms=8, color='tab:blue', label='Maximum 1st forward')
@@ -402,10 +408,11 @@ if __name__ == "__main__":
     ax4.plot(fr2_fringe, fr2_slopes, '-', lw=2, color='violet', label='2nd forward fringe response')
     ax4.plot(fr2_max_fringe, fr2_max_slope, 'o', ms=8, color='tab:purple', label='Maximum 2nd forward')
     ax4.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax4.set_xlabel('True Strain', fontsize=fs)
+    ax4.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
     ax4.set_ylabel('Fringe response (MPa)', fontsize=fs)
     ax4.tick_params(axis='both', which='major', labelsize=fs)
     ax4.set_xlim(xlimits)
+    ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     ax6.plot(dstrain, dslopes2, '-', lw=2,  color='tab:cyan', label='2nd derivative')
     ax6.plot(xvalleys, yvalleys, 'o', ms=8, color='tab:blue', label='Local minima')
@@ -414,10 +421,11 @@ if __name__ == "__main__":
     ax6.axvline(xlo, color='tab:red', ls='--', lw=2, label='Linear-region xlo')
     ax6.axvline(xhi, color='tab:red', ls='--', lw=2, label='Linear-region xhi')
     ax6.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax6.set_xlabel('True Strain', fontsize=fs)
+    ax6.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
     ax6.set_ylabel(r'$\frac{d^{2}(Fringe-Response)}{d(Strain)^{2}}$ (MPa)', fontsize=fs)
     ax6.tick_params(axis='both', which='major', labelsize=fs)
     ax6.set_xlim(xlimits)
+    ax6.text(*label_rel_pos, '(f)', transform=ax6.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     fig.tight_layout()
     #plt.show()

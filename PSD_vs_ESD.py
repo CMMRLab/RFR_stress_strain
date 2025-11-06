@@ -336,6 +336,7 @@ if __name__ == "__main__":
     
     # Set fontsize
     fs = 14
+    label_rel_pos = (0.005, 0.99)
     
     # Start plotting data
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 8))
@@ -350,6 +351,7 @@ if __name__ == "__main__":
     ax1.set_ylabel('True Stress (MPa)', fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
     ax1.set_xlim(xlimits)
+    ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     ax3.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
     ax3.plot(strain, filtered_stress_esd, '-', lw=2, color='#2c7fb8ff', label='Filtered data\n(ESD critical frequency)')
@@ -360,7 +362,7 @@ if __name__ == "__main__":
     ax3.set_ylabel('True Stress (MPa)', fontsize=fs)
     ax3.tick_params(axis='both', which='major', labelsize=fs)
     ax3.set_xlim(xlimits)
-
+    ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     if str(wn).startswith('op'):
         ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$ for stress-strain')
@@ -372,9 +374,10 @@ if __name__ == "__main__":
         ax2.tick_params(axis='both', which='major', labelsize=fs)
         ax2.set_xlim((-0.001, 0.03)) # Comment/uncomment for xlimits
         ax2.set_ylim((-1*mean_stress_psd, 30*mean_stress_psd)) # Comment/uncomment for xlimits
+        ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         
 
-        ax4.stem(wns_stress, esd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N^2$ for stress-strain')
+        ax4.stem(wns_stress, esd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/2T$ for stress-strain')
         ax4.plot(wn_stress_esd, power_stress_esd, 'o', ms=8, color='#ff9d3aff', label='Critical frequency\n({:.4f}, {:.4f})'.format(wn_stress_esd, power_stress_esd))
         ax4.axhline(mean_stress_esd, color='#ff9d3aff', ls='--', lw=2, label='Average energy={:.4f}'.format(mean_stress_esd))
         ax4.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0), fancybox=True, ncol=1, fontsize=0.75*fs)
@@ -383,6 +386,7 @@ if __name__ == "__main__":
         ax4.tick_params(axis='both', which='major', labelsize=fs)
         ax4.set_xlim((-0.001, 0.03)) # Comment/uncomment for xlimits
         ax4.set_ylim((-1*mean_stress_esd, 30*mean_stress_esd)) # Comment/uncomment for xlimits
+        ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         
 
     

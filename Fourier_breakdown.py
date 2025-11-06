@@ -51,6 +51,16 @@ import numpy as np
 ##########
 # logfile to read in
 logfile = 'logfiles/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF.log.lammps'
+strain_direction = 'x'
+
+logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
+strain_direction = 'z'
+
+logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
+strain_direction = 'y'
+
+logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
+strain_direction = 'x'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
@@ -70,10 +80,6 @@ keywords = ['Step']
 #  is missing in a certain section, the get_data function will create
 #  zeros.*
 sections = 1
-
-
-# Set strain direction of 'x' or 'y' or 'z'
-strain_direction = 'x'
 
 
 # Regression fringe response settings
@@ -226,11 +232,7 @@ if __name__ == "__main__":
     #-----------------------------------------#
     # Function to perform a Fourier breakdown #
     #-----------------------------------------#
-    def FFT_breakdown(x, y, indices, qm):
-        lo, hi = [int(i) for i in qm.split(',')]
-        x, y, lo_trim, hi_trim = signals.data_extension(x, y, lo=lo, hi=hi)
-
-        
+    def FFT_breakdown(x, y, indices, qm):        
         #-----------------------------------#
         # Compute the one-sided FFT and PSD #
         #-----------------------------------#
@@ -253,16 +255,36 @@ if __name__ == "__main__":
         scaling_factors = np.zeros_like(amp)
         scaling_factors[indices] = 1
 
-
+        # Use Fourier filter
         X_clean = scaling_factors*X
         y_filter = np.fft.irfft(X_clean)
+        
+                
+        # Find the magnitude and phase components
+        max_index = max(indices)
+        amplitude = amp[max_index]
+        frequency = f[max_index]
+        phase = np.angle(X[max_index], deg=True)
         
         # Since we are performing a one sided FFT, the Nyquist freq may or may not be inlcuded
         # depending on even or odd number of data points, so append a value if Nyquist freq is
         # missing so that y_filter has the same shape as the X-data.
         if y_filter.shape != x.shape:
             y_filter = np.append(y_filter, y_filter[-1])
-        return y_filter[lo_trim:hi_trim] 
+        return y_filter, phase, frequency, amplitude
+    
+    def compute_freq(xdata):
+        # Define sampling rate and number of data points
+        dx = np.mean(np.abs(np.diff(xdata)))
+        if dx != 0: 
+            fs = 1/dx # sampling rate
+        else: fs = xdata.shape[0]/(np.max(xdata) - np.min(xdata))
+        N = xdata.shape[0] # number of data points
+        d = 1/fs # sampling space
+        
+        freq = np.fft.rfftfreq(N, d=d)
+        wns = freq/(0.5*fs) # Normalized freq
+        return freq, wns, fs
     
 
     
@@ -295,11 +317,12 @@ if __name__ == "__main__":
     # Set xlimits
     delta = 0.01
     xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta)
-    xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta+0.1)
+    xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta+0.2)
     
     # Set fontsize
-    fs = 12
-    legend_fs_scale = 0.75
+    fs = 16
+    legend_fs_scale = 0.7
+    label_rel_pos = (0.005, 0.99)
     
     # Start plotting data
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12.5, 9))
@@ -307,22 +330,41 @@ if __name__ == "__main__":
     ax1.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
     ax1.plot(strain, filtered_stress, '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
     ax1.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-    ax1.set_xlabel('True Strain', fontsize=fs)
-    ax1.set_ylabel('True Stress (MPa)', fontsize=fs)
+    ax1.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax1.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
     ax1.set_xlim(xlimits)
+    ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     if str(wn).startswith('op'):
         ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$ for stress-strain')
-        #ax2.plot(wn_stress, power_stress, 'o', ms=8, color='#ff9d3aff', label='Critical frequency\n({:.4f}, {:.4f})'.format(wn_stress, power_stress))
         ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Average power={:.4f}'.format(mean_stress_psd))
-        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Critical frequency={:.4f}'.format(wn_stress))
+
+        
+        # Put other units on top X-axis
+        freq, wns, sample_rate = compute_freq(strain)
+        def wn2freq(wns):
+            return wns*(0.5*sample_rate)
+        
+        def freq2wn(freq):
+            return freq/(0.5*sample_rate)
+        
+        ax2Top = ax2.secondary_xaxis('top', functions=(wn2freq, freq2wn))   
+        ax2Top.set_xlabel('Oscillations per unit True Strain, {}{}'.format(r'$\epsilon$', '$^{-1}$'), fontsize=fs)
+        ax2Top.tick_params(axis='both', which='major', labelsize=fs)
+                
+
+        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Critical normalized frequency={:.4f}'.format(wn_stress))
+        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Critical absolute frequency={:.4f}'.format(wn_stress*(0.5*sample_rate)))
         ax2.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax2.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
         ax2.set_ylabel('Power Spectral Density', fontsize=fs)
         ax2.tick_params(axis='both', which='major', labelsize=fs)
         ax2.set_xlim((-0.001, 0.02)) # Comment/uncomment for xlimits
         ax2.set_ylim((-1*mean_stress_psd, 30*mean_stress_psd)) # Comment/uncomment for xlimits
+        ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        
+
 
     color_index = 0
     ax3.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
@@ -330,41 +372,47 @@ if __name__ == "__main__":
     lo = 0
     hi = wn_index
     for i in range(lo, hi+1):
-        wave = FFT_breakdown(strain, stress, [i], qm_stress)
+        wave, phase, frequency, amplitude = FFT_breakdown(strain, stress, [i], qm_stress)
         comp_wave += wave
         label = 'PSD index: {}'.format(i)
         if i == 0: label += ' (DC-offset)'
-        if i == wn_index: label += ' (Critical frequency)'
+        elif i == wn_index: label += ' (Critical frequency)'
+        else: label += ' (Amplitude={:.2f})'.format(amplitude)
         color, color_index = walk_colors(color_index, colors)
         ax3.plot(strain, wave, '-', lw=2, color=color, label=label)
         ax2.plot(wns_stress[i], psd_stress[i], 'o', ms=8, color=color)
     ax3.plot(strain, comp_wave, '-', lw=4, color='#2c7fb8ff', label='Summed waves (indexes {}-{})'.format(lo, hi))
 
     ax3.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-    ax3.set_xlabel('True Strain', fontsize=fs)
-    ax3.set_ylabel('True Stress (MPa)', fontsize=fs)
+    ax3.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax3.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
     ax3.tick_params(axis='both', which='major', labelsize=fs)
     ax3.set_xlim(xlimits)
+    ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
 
     ax4.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
     comp_wave = np.zeros_like(stress)
     lo = int(wn_index+1)
-    hi = int(3*wn_index)
+    hi = int(2*wn_index)
     for i in range(lo, hi+1):
-        wave = FFT_breakdown(strain, stress, [i], qm_stress)
+        wave, phase, frequency, amplitude = FFT_breakdown(strain, stress, [i], qm_stress)
         comp_wave += wave
         label = 'PSD index: {}'.format(i)
+        label += ' (Amplitude={:.2f})'.format(amplitude)
         color, color_index = walk_colors(color_index, colors)
         ax4.plot(strain, wave, '-', lw=2, color=color, label=label)
         ax2.plot(wns_stress[i], psd_stress[i], 'o', ms=8, color=color)
     ax4.plot(strain, comp_wave, '-', lw=4, color='#2c7fb8ff', label='Summed waves (indexes {}-{})'.format(lo, hi))
 
     ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-    ax4.set_xlabel('True Strain', fontsize=fs)
-    ax4.set_ylabel('True Stress (MPa)', fontsize=fs)
+    ax4.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax4.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
     ax4.tick_params(axis='both', which='major', labelsize=fs)
     ax4.set_xlim(xlimits)
+    ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         
     
     fig.tight_layout()
     plt.show()
+    basename = logfile[:logfile.rfind('.')] + '_Waves'
+    fig.savefig(basename+'.jpeg', dpi=300)

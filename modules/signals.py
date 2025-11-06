@@ -87,11 +87,11 @@ def compute_ESD(xdata, ydata):
     Returns
     -------
     wns : Numpy array.
-          X-values for the PSD which have been normalized (x_fft is the 
+          X-values for the ESD which have been normalized (x_fft is the 
           non-normalized frequency components).
           
     psd : Numpy array.
-          Y-values for the PSD.
+          Y-values for the ESD.
 
     """
     # Define sampling rate and number of data points
@@ -101,16 +101,17 @@ def compute_ESD(xdata, ydata):
     else: fs = xdata.shape[0]/(np.max(xdata) - np.min(xdata))
     N = xdata.shape[0] # number of data points
     d = 1/fs # sampling space
+    T = np.max(xdata) - np.min(xdata) # Duration of signal
 
     # Perform one sided FFT
     fft_response = np.fft.rfft(ydata, axis=0, norm='backward')
     x_fft = np.fft.rfftfreq(N, d=d)
     y_fft = fft_response 
     
-    # Compute the final PSD and normalized cutoff frequencies
-    psd = np.real( (y_fft*np.conjugate(y_fft))/(N**2) ) 
+    # Compute the final ESD and normalized cutoff frequencies
+    esd = np.real( (y_fft*np.conjugate(y_fft))/(2*T) ) 
     wns = x_fft/(0.5*fs)
-    return wns, psd
+    return wns, esd
 
 
 def power_to_db(power, ref_power=1):

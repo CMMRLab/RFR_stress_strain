@@ -52,14 +52,14 @@ import numpy as np
 logfile = 'logfiles/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF.log.lammps'
 strain_direction = 'x'
 
-# logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
-# strain_direction = 'z'
+logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
+strain_direction = 'z'
 
 # logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
 # strain_direction = 'y'
 
-# logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
-# strain_direction = 'x'
+logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
+strain_direction = 'x'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
@@ -313,6 +313,7 @@ if __name__ == "__main__":
     
     # Set fontsize
     fs = 14
+    label_rel_pos = (0.005, 0.99)
     
     # Start plotting data
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
@@ -320,10 +321,11 @@ if __name__ == "__main__":
     ax1.plot(strain, filtered_stress, '-', lw=2, color='#2c7fb8ff', label='Filtered data')
     ax1.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, color='#ff9d3aff', label="Young's modulus\n{:.4f}".format(youngs_modulus_coeffs[1]))
     ax1.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax1.set_xlabel('True Strain', fontsize=fs)
-    ax1.set_ylabel('True Stress (MPa)', fontsize=fs)
+    ax1.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax1.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
     ax1.set_xlim(xlimits)
+    ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     ax2.plot(fr1_fringe, fr1_slopes, '-', lw=2, color='tab:cyan', label='1st forward fringe response')
     ax2.plot(fr1_max_fringe, fr1_max_slope, 'o', ms=8, color='tab:blue', label='Maximum 1st forward')
@@ -332,10 +334,11 @@ if __name__ == "__main__":
     ax2.plot(fr2_fringe, fr2_slopes, '-', lw=2, color='violet', label='2nd forward fringe response')
     ax2.plot(fr2_max_fringe, fr2_max_slope, 'o', ms=8, color='tab:purple', label='Maximum 2nd forward')
     ax2.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax2.set_xlabel('True Strain', fontsize=fs)
+    ax2.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
     ax2.set_ylabel('Fringe response (MPa)', fontsize=fs)
     ax2.tick_params(axis='both', which='major', labelsize=fs)
     ax2.set_xlim(xlimits)
+    ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     
     # ax3.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
@@ -351,13 +354,14 @@ if __name__ == "__main__":
     ax3.axvline(xlo, color='tab:blue', ls='--', lw=2, label='FBF-xlo')
     ax3.axvline(xhi, color='darkblue', ls='--', lw=2, label='FRB-xhi')
     
-    ax3.legend(loc='lower right', bbox_to_anchor=(0.5, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax3.set_xlabel('True Strain', fontsize=fs)
+    ax3.legend(loc='lower right', bbox_to_anchor=(0.55, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
+    ax3.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
     ax3.set_ylabel('Fringe response (MPa)', fontsize=fs, color='tab:cyan')
     ax3.tick_params(axis='both', which='major', labelsize=fs)
     ax3.tick_params(axis='x', labelsize=fs, colors='black')
     ax3.tick_params(axis='y', labelsize=fs, colors='tab:cyan')
     ax3.set_xlim(xlimits)
+    ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     ax3a = ax3.twinx()
     ax3a.plot(dstrain, dslopes2, '-', lw=2, color='tab:purple', label='2nd derivative')
@@ -366,8 +370,8 @@ if __name__ == "__main__":
     ax3a.axhline(0, color='black', ls='--', lw=2, label='Zero')
     
 
-    ax3a.legend(loc='lower right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax3a.set_xlabel('True Strain', fontsize=fs)
+    ax3a.legend(loc='lower right', bbox_to_anchor=(0.95, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
+    ax3a.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
     ax3a.set_ylabel(r'$\frac{d^{2}(Fringe-Response)}{d(Strain)^{2}}$ (MPa)', fontsize=fs, color='tab:purple')
     ax3a.tick_params(axis='both', which='major', labelsize=fs)
     ax3a.tick_params(axis='y', labelsize=fs, colors='tab:purple')
@@ -381,8 +385,8 @@ if __name__ == "__main__":
     ax4.axvline(xlo, color='tab:blue', ls='--', lw=2, label='FBF-xlo')
     ax4.axvline(xhi, color='darkblue', ls='--', lw=2, label='FRB-xhi')
     
-    ax4.legend(loc='lower right', bbox_to_anchor=(0.5, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax4.set_xlabel('True Strain', fontsize=fs)
+    ax4.legend(loc='lower right', bbox_to_anchor=(0.55, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
+    ax4.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
     ax4.set_ylabel('Fringe response (MPa)', fontsize=fs, color='tab:cyan')
     ax4.tick_params(axis='both', which='major', labelsize=fs)
     ax4.tick_params(axis='x', labelsize=fs, colors='black')
@@ -396,12 +400,13 @@ if __name__ == "__main__":
     ax4a.axhline(0, color='black', ls='--', lw=2, label='Zero')
     
 
-    ax4a.legend(loc='lower right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax4a.set_xlabel('True Strain', fontsize=fs)
+    ax4a.legend(loc='lower right', bbox_to_anchor=(0.95, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
+    ax4a.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
     ax4a.set_ylabel(r'$\frac{d^{2}(Fringe-Response)}{d(Strain)^{2}}$ (MPa)', fontsize=fs, color='tab:purple')
     ax4a.tick_params(axis='both', which='major', labelsize=fs)
     ax4a.tick_params(axis='y', labelsize=fs, colors='tab:purple')
     ax4a.set_xlim((-0.001, 1.5*xhi))
+    ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     
 
