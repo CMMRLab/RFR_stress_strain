@@ -226,7 +226,11 @@ if __name__ == "__main__":
     #-----------------------------------------#
     # Function to perform a Fourier breakdown #
     #-----------------------------------------#
-    def FFT_breakdown(x, y, indices):
+    def FFT_breakdown(x, y, indices, qm):
+        lo, hi = [int(i) for i in qm.split(',')]
+        x, y, lo_trim, hi_trim = signals.data_extension(x, y, lo=lo, hi=hi)
+
+        
         #-----------------------------------#
         # Compute the one-sided FFT and PSD #
         #-----------------------------------#
@@ -248,8 +252,7 @@ if __name__ == "__main__":
         # Set a scaling factor of 0 or 1 to cancel out (0) or leave (1) certain frequencies
         scaling_factors = np.zeros_like(amp)
         scaling_factors[indices] = 1
-        psd_peaks = amp[indices]
-        psd_freqs = f[indices]
+
 
         X_clean = scaling_factors*X
         y_filter = np.fft.irfft(X_clean)
@@ -259,7 +262,7 @@ if __name__ == "__main__":
         # missing so that y_filter has the same shape as the X-data.
         if y_filter.shape != x.shape:
             y_filter = np.append(y_filter, y_filter[-1])
-        return y_filter
+        return y_filter[lo_trim:hi_trim] 
     
 
     
@@ -327,7 +330,7 @@ if __name__ == "__main__":
     lo = 0
     hi = wn_index
     for i in range(lo, hi+1):
-        wave = FFT_breakdown(strain, stress, [i])
+        wave = FFT_breakdown(strain, stress, [i], qm_stress)
         comp_wave += wave
         label = 'PSD index: {}'.format(i)
         if i == 0: label += ' (DC-offset)'
@@ -348,7 +351,7 @@ if __name__ == "__main__":
     lo = int(wn_index+1)
     hi = int(3*wn_index)
     for i in range(lo, hi+1):
-        wave = FFT_breakdown(strain, stress, [i])
+        wave = FFT_breakdown(strain, stress, [i], qm_stress)
         comp_wave += wave
         label = 'PSD index: {}'.format(i)
         color, color_index = walk_colors(color_index, colors)
