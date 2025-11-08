@@ -54,14 +54,14 @@ import scipy as sp
 logfile = 'logfiles/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF.log.lammps'
 strain_direction = 'x'
 
-logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
-strain_direction = 'z'
+# logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
+# strain_direction = 'z'
 
-logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
-strain_direction = 'y'
+# logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
+# strain_direction = 'y'
 
-logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
-strain_direction = 'x'
+# logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
+# strain_direction = 'x'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
@@ -371,7 +371,7 @@ if __name__ == "__main__":
         ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Normalized : {}$_c$={:.4f}'.format(r'$\omega$', wn_stress))
         ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Absolute      : {}$_c$={:.4f}'.format(r'$\omega$', wn_stress*(0.5*sample_rate)))
         ax2.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-        ax2.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
+        ax2.set_xlabel('Normalized Frequencies, {}'.format(r'$\omega$'), fontsize=fs)
         ax2.set_ylabel('Power Spectral Density', fontsize=fs, color=color)
         ax2.tick_params(axis='x', which='major', labelsize=fs, colors='black')
         ax2.tick_params(axis='y', which='major', labelsize=fs, colors=color)

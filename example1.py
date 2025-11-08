@@ -390,7 +390,7 @@ if __name__ == "__main__":
     
     if str(wn).startswith('op'):
         ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$ for stress-strain')
-        ax2.plot(wn_stress, power_stress, 'o', ms=8, color='#ff9d3aff', label='Critical frequency\n({:.4f}, {:.4f})'.format(wn_stress, power_stress))
+        ax2.plot(wn_stress, power_stress, 'o', ms=8, color='#ff9d3aff', label='{}$_c$ ({:.4f}, {:.4f})'.format(r'$\omega$', wn_stress, power_stress))
         ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Average power={:.4f}'.format(mean_stress_psd))
         ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0), fancybox=True, ncol=1, fontsize=0.75*fs)
         ax2.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
