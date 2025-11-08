@@ -60,8 +60,8 @@ strain_direction = 'z'
 logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
 strain_direction = 'y'
 
-# logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
-# strain_direction = 'x'
+logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
+strain_direction = 'x'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
@@ -364,12 +364,12 @@ if __name__ == "__main__":
             return freq/(0.5*sample_rate)
         
         ax2Top = ax2.secondary_xaxis('top', functions=(wn2freq, freq2wn))   
-        ax2Top.set_xlabel('Oscillations per unit True Strain, {}{}'.format(r'$\epsilon$', '$^{-1}$'), fontsize=fs)
+        ax2Top.set_xlabel('Cycles per unit True Strain, {}{}'.format(r'$\epsilon$', '$^{-1}$'), fontsize=fs)
         ax2Top.tick_params(axis='both', which='major', labelsize=fs)
                 
 
-        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Critical normalized frequency={:.4f}'.format(wn_stress))
-        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Critical absolute frequency={:.4f}'.format(wn_stress*(0.5*sample_rate)))
+        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Normalized : {}$_c$={:.4f}'.format(r'$\omega$', wn_stress))
+        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Absolute      : {}$_c$={:.4f}'.format(r'$\omega$', wn_stress*(0.5*sample_rate)))
         ax2.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax2.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
         ax2.set_ylabel('Power Spectral Density', fontsize=fs, color=color)
@@ -410,7 +410,7 @@ if __name__ == "__main__":
             
         label = 'PSD index: {:<2}'.format(i)
         if i == 0: label += ' (DC-offset)'
-        elif i == wn_index: label += ' (Critical frequency)'
+        elif i == wn_index: label += ' ({}$_c$)'.format(r'$\omega$')
         else: label += ' (Amp={:>6.2f}, |H(jω)|={:.2f})'.format(amplitude, sf)
         color, color_index = walk_colors(color_index, colors)
         

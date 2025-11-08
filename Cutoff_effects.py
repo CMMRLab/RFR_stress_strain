@@ -317,11 +317,11 @@ if __name__ == "__main__":
     # Set xlimits
     delta = 0.01
     xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta)
-    xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta+0.125)
+    xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta+0.07)
     
     # Set fontsize
     fs = 16
-    legend_fs_scale = 0.7
+    legend_fs_scale = 0.75
     label_rel_pos = (0.005, 0.99)
     
     # Start plotting data
@@ -329,25 +329,14 @@ if __name__ == "__main__":
 
     ax1.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')      
     if str(wn).startswith('op'):
-        ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$ for stress-strain')
+        ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', basefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$ for stress-strain')
         ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Average power={:.4f}'.format(mean_stress_psd))
 
         
-        # Put other units on top X-axis
-        freq, wns, sample_rate = compute_freq(strain)
-        def wn2freq(wns):
-            return wns*(0.5*sample_rate)
-        
-        def freq2wn(freq):
-            return freq/(0.5*sample_rate)
-        
-        ax2Top = ax2.secondary_xaxis('top', functions=(wn2freq, freq2wn))   
-        ax2Top.set_xlabel('Cycles per unit True Strain, {}{}'.format(r'$\epsilon$', '$^{-1}$'), fontsize=fs)
-        ax2Top.tick_params(axis='both', which='major', labelsize=fs)
+
                 
 
         ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Normalized: {}$_c$={:.4f}'.format(r'$\omega$', wn_stress))
-        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Absolute:      {}$_c$={:.4f}'.format(r'$\omega$', wn_stress*(0.5*sample_rate)))
         ax2.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax2.set_xlabel('Normalized Frequency, {}'.format(r'$\omega$'), fontsize=fs)
         ax2.set_ylabel('Power Spectral Density', fontsize=fs)
@@ -356,9 +345,6 @@ if __name__ == "__main__":
         ax2.set_ylim((-1*mean_stress_psd, 30*mean_stress_psd)) # Comment/uncomment for xlimits
         ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         
-        
-        label = 'PSD index: {}'.format(wn_index)
-        ax2.plot(wns_stress[wn_index], psd_stress[wn_index], 'o', ms=8, color='#2c7fb8ff')
             
 
         indexes = [int(wn_index)]
@@ -374,9 +360,9 @@ if __name__ == "__main__":
             if i <= 0: continue
             filtered_stress_i, qm_stress_i = signals.butter_lowpass_filter(strain, stress, wns_stress[i], order, qm_stress)
             if i == wn_index:
-                label = 'PSD index: {} (Critical frequency)'.format(wn_index)
+                label = 'PSD index: {} ({}$_c$)'.format(wn_index, r'$\omega$')
                 color = '#2c7fb8ff'
-                ax1.plot(strain, filtered_stress, '-', lw=2, color='#2c7fb8ff', zorder=5, label=label)
+                ax1.plot(strain, filtered_stress, '-', lw=4, color='#2c7fb8ff', zorder=5, label=label)
             else:
                 color, color_index = walk_colors(color_index, colors)
                 label = 'PSD index: {}'.format(i)
