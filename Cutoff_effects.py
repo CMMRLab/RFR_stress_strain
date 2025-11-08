@@ -43,6 +43,7 @@ from cycler import cycler
 import matplotlib.pyplot as plt
 import matplotlib as mpl  
 mpl.rc('font',family='Calibri')
+from matplotlib.ticker import ScalarFormatter
 import numpy as np
 import scipy as sp
 
@@ -54,14 +55,14 @@ import scipy as sp
 logfile = 'logfiles/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF.log.lammps'
 strain_direction = 'x'
 
-logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
-strain_direction = 'z'
+# logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
+# strain_direction = 'z'
 
-logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
-strain_direction = 'y'
+# logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
+# strain_direction = 'y'
 
-# logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
-# strain_direction = 'x'
+logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
+strain_direction = 'x'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
@@ -286,20 +287,6 @@ if __name__ == "__main__":
         freq = np.fft.rfftfreq(N, d=d)
         wns = freq/(0.5*fs) # Normalized freq
         return freq, wns, fs
-
-
-    def butterworth_amp_response(order=2, wn=0.1):
-        b, a = sp.signal.butter(order, wn, btype='low', analog=False, output='ba', fs=None)
-        f, h = sp.signal.freqz(b, a, worN=4096)
-        f = f / np.pi
-        h = abs(h)
-        return f, h
-
-    def butter_near_amp(nfreq, f, h):
-        index = np.abs(f - nfreq).argmin()
-        return h[index]
-    
-
     
     
     #---------------------------------#
@@ -312,7 +299,7 @@ if __name__ == "__main__":
     #   colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     # However, we can construct our own color wheel to prioritize the colors we want first and we can 
     # have way more colors defined than what matplotlib defines. Below is Josh's preferred color wheel
-    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple', 'tab:red', 'tab:gray','tab:olive', 'tab:cyan', 'tab:pink', 'teal',
+    colors = ['tab:orange', 'tab:green', 'tab:purple', 'tab:red', 'tab:gray','tab:olive', 'tab:cyan', 'tab:pink', 'teal', 'tab:blue', 
               'crimson', 'lime', 'tomato',  'blue', 'orange', 'green', 'purple', 'red', 'gray', 'olive', 'cyan', 'pink', 'tab:brown']
 
 
@@ -330,28 +317,19 @@ if __name__ == "__main__":
     # Set xlimits
     delta = 0.01
     xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta)
-    xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta+0.175)
+    xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta+0.125)
     
     # Set fontsize
     fs = 16
-    legend_fs_scale = 0.65
+    legend_fs_scale = 0.7
     label_rel_pos = (0.005, 0.99)
     
     # Start plotting data
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14.5, 9))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
-    ax1.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    ax1.plot(strain, filtered_stress, '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
-    ax1.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-    ax1.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
-    ax1.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
-    ax1.tick_params(axis='both', which='major', labelsize=fs)
-    ax1.set_xlim(xlimits)
-    ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-    
+    ax1.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')      
     if str(wn).startswith('op'):
-        color = 'tab:blue'
-        ax2.stem(wns_stress, psd_stress, linefmt=color, basefmt=color, markerfmt='.', label='$|X(f)|^2/N$')
+        ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$ for stress-strain')
         ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Average power={:.4f}'.format(mean_stress_psd))
 
         
@@ -364,92 +342,58 @@ if __name__ == "__main__":
             return freq/(0.5*sample_rate)
         
         ax2Top = ax2.secondary_xaxis('top', functions=(wn2freq, freq2wn))   
-        ax2Top.set_xlabel('Oscillations per unit True Strain, {}{}'.format(r'$\epsilon$', '$^{-1}$'), fontsize=fs)
+        ax2Top.set_xlabel('Cycles per unit True Strain, {}{}'.format(r'$\epsilon$', '$^{-1}$'), fontsize=fs)
         ax2Top.tick_params(axis='both', which='major', labelsize=fs)
                 
 
-        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Critical normalized frequency={:.4f}'.format(wn_stress))
-        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Critical absolute frequency={:.4f}'.format(wn_stress*(0.5*sample_rate)))
+        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Normalized: {}$_c$={:.4f}'.format(r'$\omega$', wn_stress))
+        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Absolute:      {}$_c$={:.4f}'.format(r'$\omega$', wn_stress*(0.5*sample_rate)))
         ax2.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-        ax2.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
-        ax2.set_ylabel('Power Spectral Density', fontsize=fs, color=color)
-        ax2.tick_params(axis='x', which='major', labelsize=fs, colors='black')
-        ax2.tick_params(axis='y', which='major', labelsize=fs, colors=color)
-        ax2.set_xlim((-0.001, 0.02)) # Comment/uncomment for xlimits
+        ax2.set_xlabel('Normalized Frequency, {}'.format(r'$\omega$'), fontsize=fs)
+        ax2.set_ylabel('Power Spectral Density', fontsize=fs)
+        ax2.tick_params(axis='both', which='major', labelsize=fs)
+        ax2.set_xlim((-0.001, 0.04)) # Comment/uncomment for xlimits
         ax2.set_ylim((-1*mean_stress_psd, 30*mean_stress_psd)) # Comment/uncomment for xlimits
         ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         
         
-        ax2Left = ax2.twinx()
-        color = 'tab:purple'
-        f, h = butterworth_amp_response(order=4, wn=wn_stress)
-        ax2Left.plot(f, h, lw=2, color=color, label='Butterworth (n=4)')
-        ax2Left.axhline(1/np.sqrt(2) , linestyle='--', lw=1.5, color='tab:purple', label='-3 dB level (~0.707)')
-        ax2Left.set_ylabel('|H(jω)|', fontsize=fs, color=color)
-        ax2Left.tick_params(axis='both', which='major', labelsize=fs, colors=color)
-        ax2Left.set_xlim((-0.001, 0.02)) # Comment/uncomment for xlimits
-        ax2Left.legend(loc='upper right', bbox_to_anchor=(1, 0.7), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-        
-
-
-    color_index = 0
-    ax3.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    comp_wave_1 = np.zeros_like(stress)
-    comp_wave_2 = np.zeros_like(stress)
-    lo = 0
-    hi = wn_index
-    for i in range(lo, hi+1):
-        wave, phase, frequency, amplitude = FFT_breakdown(strain, stress, [i], qm_stress)
-        sf = butter_near_amp(wns[i], f, h)
-        
-        if sf >= 0.99:
-            comp_wave_1 += wave
-            max_index = i
-        else:
-            comp_wave_2 += wave
+        label = 'PSD index: {}'.format(wn_index)
+        ax2.plot(wns_stress[wn_index], psd_stress[wn_index], 'o', ms=8, color='#2c7fb8ff')
             
-        label = 'PSD index: {:<2}'.format(i)
-        if i == 0: label += ' (DC-offset)'
-        elif i == wn_index: label += ' (Critical frequency)'
-        else: label += ' (Amp={:>6.2f}, |H(jω)|={:.2f})'.format(amplitude, sf)
-        color, color_index = walk_colors(color_index, colors)
-        
-        ax3.plot(strain, wave, '-', lw=2, color=color, label=label)
-        ax2.plot(wns_stress[i], psd_stress[i], 'o', ms=8, color=color)
-    ax3.plot(strain, comp_wave_1, '-', lw=4, color='#2c7fb8ff', label='Fourier filter (indexes {}-{})'.format(lo, max_index))
-    ax3.plot(strain, comp_wave_2, '-', lw=4, color='#ff9d3aff', label='Fourier filter (indexes {}-{})'.format(max_index+1, hi))
 
-    ax3.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-    ax3.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
-    ax3.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
-    ax3.tick_params(axis='both', which='major', labelsize=fs)
-    ax3.set_xlim(xlimits)
-    ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        indexes = [int(wn_index)]
+        lo = int(wn_index/6)
+        hi = int(2*wn_index)
+        inc = lo
+        for i in range(lo, hi, inc):
+            indexes.append( int(wn_index + 2*i) )
+            indexes.append( int(wn_index - i) )
+        indexes = sorted(indexes)
+        color_index = 0
+        for i in indexes:
+            if i <= 0: continue
+            filtered_stress_i, qm_stress_i = signals.butter_lowpass_filter(strain, stress, wns_stress[i], order, qm_stress)
+            if i == wn_index:
+                label = 'PSD index: {} (Critical frequency)'.format(wn_index)
+                color = '#2c7fb8ff'
+                ax1.plot(strain, filtered_stress, '-', lw=2, color='#2c7fb8ff', zorder=5, label=label)
+            else:
+                color, color_index = walk_colors(color_index, colors)
+                label = 'PSD index: {}'.format(i)
+                ax1.plot(strain, filtered_stress_i, '-', lw=2, color=color, label=label)
+            
+            ax2.plot(wns_stress[i], psd_stress[i], 'o', ms=8, color=color)
+            
+    ax1.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax1.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax1.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
+    ax1.tick_params(axis='both', which='major', labelsize=fs)
+    ax1.set_xlim(xlimits)
+    ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
 
-    ax4.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    comp_wave = np.zeros_like(stress)
-    lo = int(wn_index+1)
-    hi = int(2*wn_index)
-    for i in range(lo, hi+1):
-        wave, phase, frequency, amplitude = FFT_breakdown(strain, stress, [i], qm_stress)
-        sf = butter_near_amp(wns[i], f, h)
-        comp_wave += wave
-        label = 'PSD index: {:<2}'.format(i)
-        label += ' (Amp={:>6.2f}, |H(jω)|={:.2f})'.format(amplitude, sf)
-        color, color_index = walk_colors(color_index, colors)
-        ax4.plot(strain, wave, '-', lw=2, color=color, label=label)
-        ax2.plot(wns_stress[i], psd_stress[i], 'o', ms=8, color=color)
-    ax4.plot(strain, comp_wave, '-', lw=4, color='#2c7fb8ff', label='Fourier filter (indexes {}-{})'.format(lo, hi))
 
-    ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-    ax4.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
-    ax4.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
-    ax4.tick_params(axis='both', which='major', labelsize=fs)
-    ax4.set_xlim(xlimits)
-    ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-        
-    
     fig.tight_layout()
     plt.show()
-    basename = logfile[:logfile.rfind('.')] + '_Waves'
+    
+    basename = logfile[:logfile.rfind('.')] + '_Cutoffs'
     fig.savefig(basename+'.jpeg', dpi=300)
