@@ -365,11 +365,11 @@ if __name__ == "__main__":
     ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     if str(wn).startswith('op'):
-        ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$ for stress-strain')
-        ax2.plot(wn_stress_psd, power_stress_psd, 'o', ms=8, color='#ff9d3aff', label='Critical frequency\n({:.4f}, {:.4f})'.format(wn_stress_psd, power_stress_psd))
+        ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', basefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$')
+        ax2.plot(wn_stress_psd, power_stress_psd, 'o', ms=8, color='#ff9d3aff', label='{}$_c$ ({:.3f}, {:.3f})'.format(r'$\omega$', wn_stress_psd, power_stress_psd))
         ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Average power={:.4f}'.format(mean_stress_psd))
-        ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0), fancybox=True, ncol=1, fontsize=0.75*fs)
-        ax2.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
+        ax2.legend(loc='upper right', bbox_to_anchor=(1.0, 1.0), fancybox=True, ncol=1, fontsize=0.75*fs)
+        ax2.set_xlabel('Normalized Frequencies, {}'.format(r'$\omega$'), fontsize=fs)
         ax2.set_ylabel('Power Spectral Density (PSD)', fontsize=fs)
         ax2.tick_params(axis='both', which='major', labelsize=fs)
         ax2.set_xlim((-0.001, 0.03)) # Comment/uncomment for xlimits
@@ -377,11 +377,11 @@ if __name__ == "__main__":
         ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         
 
-        ax4.stem(wns_stress, esd_stress, linefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/2T$ for stress-strain')
-        ax4.plot(wn_stress_esd, power_stress_esd, 'o', ms=8, color='#ff9d3aff', label='Critical frequency\n({:.4f}, {:.4f})'.format(wn_stress_esd, power_stress_esd))
-        ax4.axhline(mean_stress_esd, color='#ff9d3aff', ls='--', lw=2, label='Average energy={:.4f}'.format(mean_stress_esd))
-        ax4.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0), fancybox=True, ncol=1, fontsize=0.75*fs)
-        ax4.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
+        ax4.stem(wns_stress, esd_stress, linefmt='tab:blue', basefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/2T$')
+        ax4.plot(wn_stress_esd, power_stress_esd, 'o', ms=8, color='#ff9d3aff', label='{}$_c$ ({:.3f}, {:.3f})'.format(r'$\omega$', wn_stress_esd, power_stress_esd))
+        ax4.axhline(mean_stress_esd, color='#ff9d3aff', ls='--', lw=2, label='Average energy={:.3f}'.format(mean_stress_esd))
+        ax4.legend(loc='upper right', bbox_to_anchor=(1.0, 1.0), fancybox=True, ncol=1, fontsize=0.75*fs)
+        ax4.set_xlabel('Normalized Frequencies, {}'.format(r'$\omega$'), fontsize=fs)
         ax4.set_ylabel('Energy Spectral Density (ESD)', fontsize=fs)
         ax4.tick_params(axis='both', which='major', labelsize=fs)
         ax4.set_xlim((-0.001, 0.03)) # Comment/uncomment for xlimits
