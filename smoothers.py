@@ -36,6 +36,7 @@ Houghton, MI 49931
 ##############################
 # Import Necessary Libraries #
 ##############################
+import modules.other_smoothers as other_smoothers
 import modules.read_log as read_log
 import modules.signals as signals
 import modules.rfr as rfr
@@ -43,6 +44,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl  
 mpl.rc('font',family='Calibri')
 import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
 
 
 ##########
@@ -50,6 +53,16 @@ import numpy as np
 ##########
 # logfile to read in
 logfile = 'logfiles/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF.log.lammps'
+strain_direction = 'x'
+
+logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
+strain_direction = 'z'
+
+logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
+strain_direction = 'y'
+
+logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
+strain_direction = 'x'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
@@ -70,9 +83,6 @@ keywords = ['Step']
 #  zeros.*
 sections = 1
 
-
-# Set strain direction of 'x' or 'y' or 'z'
-strain_direction = 'x'
 
 
 # Regression fringe response settings
@@ -192,33 +202,22 @@ if __name__ == "__main__":
     if str(wn).startswith('op'):
         # Compute the PSD for different data sets
         wns_stress, psd_stress = signals.compute_PSD(strain, stress)
-        wns_stress, esd_stress = signals.compute_ESD(strain, stress)
         
         # Find the mean value of the different PSD and ESD
         mean_stress_psd = np.mean(psd_stress)
-        mean_stress_esd = np.mean(esd_stress)
-
         
         # Find where each PSD crosses the mean
         wn_stress_psd = wns_stress[np.min(np.where(psd_stress < mean_stress_psd)[0])]
-        wn_stress_esd = wns_stress[np.min(np.where(esd_stress < mean_stress_esd)[0])]
-
 
         
         # Compute the corresponding power value for the crossing of the mean
         power_stress_psd = psd_stress[np.min(np.where(wns_stress == wn_stress_psd)[0])]
-        power_stress_esd = esd_stress[np.min(np.where(wns_stress == wn_stress_esd)[0])]
-
-    
-        # Filter the data with an optimized wn value
-        filtered_stress_psd, qm_stress_psd = signals.butter_lowpass_filter(strain, stress, wn_stress_psd, order, quadrant_mirror)
-        filtered_stress_esd, qm_stress_esd = signals.butter_lowpass_filter(strain, stress, wn_stress_esd, order, quadrant_mirror)
-
+        
+        filtered_stress, qm_stress_psd = signals.butter_lowpass_filter(strain, stress, wn_stress_psd, order, quadrant_mirror)
         
     else:
         # Filter the data with a user defined wn value
-        filtered_stress_psd, qm_stress_psd = signals.butter_lowpass_filter(strain, stress, wn, order, quadrant_mirror)
-        filtered_stress_esd, qm_stress_esd = signals.butter_lowpass_filter(strain, stress, wn, order, quadrant_mirror)
+        filtered_stress, qm_stress = signals.butter_lowpass_filter(strain, stress, wn, order, quadrant_mirror)
 
     
     #------------------------------------#
@@ -231,8 +230,8 @@ if __name__ == "__main__":
         # creates a minimum stress lower then the residual stress).
         max_index = np.min(np.where(stress == np.max(stress))[0])
         min_stress = np.min(stress[:max_index])
-        stress -= min_stress
-        stress -= min_stress
+        stress = stress.copy() - min_stress
+        xlo = min(strain)
         
         #--------------------------------------------------------#
         # Compute the forward-backwards-forwards fringe response #
@@ -245,43 +244,51 @@ if __name__ == "__main__":
         fr1_max_index = np.argmax(fr1_slopes)
         fr1_max_slope = fr1_slopes[fr1_max_index]
         fr1_max_fringe = fr1_fringe[fr1_max_index]
+        xhi = fr1_max_fringe
         
         # Step2: First backwards response (br1 - applying minxhi and maxxhi accordingly)
-        min_strain_br1 = min(strain)
-        max_strain_br1 = fr1_max_fringe - minxhi # use minxhi to set the "span" of the smallest linear region acceptable
-        fr1_max_index_absolute = np.argmin(np.abs(strain - fr1_max_fringe))
-        reduced_strain = strain[0:fr1_max_index_absolute]
-        reduced_stress = stress[0:fr1_max_index_absolute]
-    
-        br1_fringe, br1_slopes = rfr.compute_fringe_slope(reduced_strain, reduced_stress, min_strain=min_strain_br1, max_strain=max_strain_br1, direction='reverse')
-        br1_max_index = np.argmax(br1_slopes)
-        br1_max_slope = br1_slopes[br1_max_index]
-        br1_max_fringe = br1_fringe[br1_max_index]
-        br1_max_index_absolute = np.argmin(np.abs(strain - br1_max_fringe))
+        try:
+            min_strain_br1 = min(strain)
+            max_strain_br1 = fr1_max_fringe - minxhi # use minxhi to set the "span" of the smallest linear region acceptable
+            fr1_max_index_absolute = np.argmin(np.abs(strain - fr1_max_fringe))
+            reduced_strain = strain[0:fr1_max_index_absolute]
+            reduced_stress = stress[0:fr1_max_index_absolute]
+        
+            br1_fringe, br1_slopes = rfr.compute_fringe_slope(reduced_strain, reduced_stress, min_strain=min_strain_br1, max_strain=max_strain_br1, direction='reverse')
+            br1_max_index = np.argmax(br1_slopes)
+            br1_max_slope = br1_slopes[br1_max_index]
+            br1_max_fringe = br1_fringe[br1_max_index]
+            br1_max_index_absolute = np.argmin(np.abs(strain - br1_max_fringe))
+            xlo = br1_max_fringe
+        except: pass
         
         # Step3: Second forward response (fr2 - applying minxhi and maxxhi accordingly)
-        min_strain_fr2 = min_strain_fr1 + br1_max_fringe
-        max_strain_fr2 = max_strain_fr1 + br1_max_fringe
-        reduced_strain = strain[br1_max_index_absolute:-1]
-        reduced_stress = stress[br1_max_index_absolute:-1]
-        
-        fr2_fringe, fr2_slopes = rfr.compute_fringe_slope(reduced_strain, reduced_stress, min_strain=min_strain_fr2, max_strain=max_strain_fr2, direction='forward')
-        fr2_max_index = np.argmax(fr2_slopes)
-        fr2_max_slope = fr2_slopes[fr2_max_index]
-        fr2_max_fringe = fr2_fringe[fr2_max_index]
-        fr2_max_index_absolute = np.argmin(np.abs(strain - fr2_max_fringe))
-        
-        # Set linear region bounds xlo and xhi from the 3 step FBF method
-        xlo = br1_max_fringe
-        xhi = fr2_max_fringe
+        try:
+            min_strain_fr2 = min_strain_fr1 + br1_max_fringe
+            max_strain_fr2 = max_strain_fr1 + br1_max_fringe
+            reduced_strain = strain[br1_max_index_absolute:-1]
+            reduced_stress = stress[br1_max_index_absolute:-1]
+            
+            fr2_fringe, fr2_slopes = rfr.compute_fringe_slope(reduced_strain, reduced_stress, min_strain=min_strain_fr2, max_strain=max_strain_fr2, direction='forward')
+            fr2_max_index = np.argmax(fr2_slopes)
+            fr2_max_slope = fr2_slopes[fr2_max_index]
+            fr2_max_fringe = fr2_fringe[fr2_max_index]
+            fr2_max_index_absolute = np.argmin(np.abs(strain - fr2_max_fringe))
+            xhi = fr2_max_fringe
+        except: pass
+
         
         #--------------------------------------------#
         # Compute the yield point and yield strength #
         #--------------------------------------------#
         # Step1: Compute the 2nd derivative from the end of the linear region to the max strain
-        reduced_fringe = fr2_fringe[fr2_max_index:-1]
-        reduced_slopes = fr2_slopes[fr2_max_index:-1]
-        dstrain, dslopes1, dslopes2 = rfr.compute_derivative(fr2_fringe, fr2_slopes)
+        try:
+            reduced_fringe = fr2_fringe[fr2_max_index:-1]
+            reduced_slopes = fr2_slopes[fr2_max_index:-1]
+        except:
+            reduced_fringe = fr1_fringe[fr1_max_index:-1]
+            reduced_slopes = fr1_slopes[fr1_max_index:-1]
+        dstrain, dslopes1, dslopes2 = rfr.compute_derivative(reduced_fringe, reduced_slopes)
         
         # Step2: Find peaks and valleys of the 2nd derivative using tuned standard deviations
         prominence = np.std(dslopes2)/3
@@ -296,31 +303,15 @@ if __name__ == "__main__":
             x_yield = strain[yield_index]
             y_yield = stress[yield_index]
             
-        return xlo, xhi, x_yield, y_yield
+            
+        xlo_index = np.min(np.where(strain == xlo)[0])
+        xhi_index = np.min(np.where(strain == xhi)[0])
+        youngs_modulus_coeffs = np.polynomial.polynomial.polyfit(strain[xlo_index:xhi_index+1], stress[xlo_index:xhi_index+1], 1)
+        youngs_modulus_x = np.array([xlo, xhi])
+        youngs_modulus_y = youngs_modulus_coeffs[1]*youngs_modulus_x + youngs_modulus_coeffs[0]
+            
+        return youngs_modulus_coeffs[1], y_yield, fr1_fringe, fr1_slopes
     
-    
-    #-------------------------------------------------------#
-    # Compute the linear regression for the Young's modulus #
-    #-------------------------------------------------------#
-    # Filtered with PSD
-    xlo_psd, xhi_psd, x_yield_psd, y_yield_psd = RFR(strain, filtered_stress_psd)
-    xlo_index_psd = np.min(np.where(strain == xlo_psd)[0])
-    xhi_index_psd = np.min(np.where(strain == xhi_psd)[0])
-    youngs_modulus_coeffs_psd = np.polynomial.polynomial.polyfit(strain[xlo_index_psd:xhi_index_psd+1], filtered_stress_psd[xlo_index_psd:xhi_index_psd+1], 1)
-    youngs_modulus_x_psd = np.array([xlo_psd, xhi_psd])
-    youngs_modulus_y_psd = youngs_modulus_coeffs_psd[1]*youngs_modulus_x_psd + youngs_modulus_coeffs_psd[0]
-    print('{:<50} {}'.format("Computed Young's modulus (PSD): ", youngs_modulus_coeffs_psd[1]))
-    print('{:<50} {}'.format("Computed yield strength  (ESD): ", y_yield_psd))
-    
-    # Filtered with ESD
-    xlo_esd, xhi_esd, x_yield_esd, y_yield_esd = RFR(strain, filtered_stress_esd)
-    xlo_index_esd = np.min(np.where(strain == xlo_esd)[0])
-    xhi_index_esd = np.min(np.where(strain == xhi_esd)[0])
-    youngs_modulus_coeffs_esd = np.polynomial.polynomial.polyfit(strain[xlo_index_esd:xhi_index_esd+1], filtered_stress_esd[xlo_index_esd:xhi_index_esd+1], 1)
-    youngs_modulus_x_esd = np.array([xlo_esd, xhi_esd])
-    youngs_modulus_y_esd = youngs_modulus_coeffs_esd[1]*youngs_modulus_x_esd + youngs_modulus_coeffs_esd[0]
-    print('{:<50} {}'.format("Computed Young's modulus (ESD): ", youngs_modulus_coeffs_esd[1]))
-    print('{:<50} {}'.format("Computed yield strength  (ESD): ", y_yield_esd))
     
     
 
@@ -335,17 +326,118 @@ if __name__ == "__main__":
     xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta)
     
     # Set fontsize
+    max_lw = 10
     fs = 14
     label_rel_pos = (0.005, 0.99)
     
     # Start plotting data
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 8))
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 9))
     
-    
+    # Start out plotting out
     ax1.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    ax1.plot(strain, filtered_stress_psd, '-', lw=2, color='#2c7fb8ff', label='Filtered data\n({}$_c$ from PSD)'.format(r'$\omega$'))
-    ax1.plot(x_yield_psd, y_yield_psd, 'o', ms=8, color='tab:purple', label='Yield point (x,y)\n({:.4f}, {:.4f})'.format(x_yield_psd, y_yield_psd))
-    ax1.plot(youngs_modulus_x_psd, youngs_modulus_y_psd, '-', lw=4, color='#ff9d3aff', label="Young's modulus\n{:.4f}".format(youngs_modulus_coeffs_psd[1]))
+    
+    
+    # Setup barplot data
+    bar_data = {} # {'Smoother': {'modulus':value, 'strength':value, 'color':COLOR}}
+    
+    #-------------#
+    # Butterworth #
+    #-------------#
+    color = 'tab:blue'   
+    label = 'Butterworth (n=4, {}$_c$=From-PSD)'.format(r'$\omega$')
+    modulus, strength, fr1_fringe_BW, fr1_slopes_BW = RFR(strain, filtered_stress)
+    bar_data[label] = {'modulus': modulus,
+                       'strength': strength,
+                       'color': color}
+    
+    ax1.plot(strain, filtered_stress, '-', lw=max_lw, color=color, label=label)
+    ax2.plot(fr1_fringe_BW, fr1_slopes_BW, '-', lw=max_lw, color=color, label=label)
+    
+    #--------#
+    # LOWESS #
+    #--------#
+    frac = 0.15
+    xout, yout = other_smoothers.lowess(strain, stress, fraction=frac, max_iter=10)
+    
+    color = 'tab:green'   
+    label = 'LOWESS (fraction={})'.format(frac)
+    
+    modulus, strength, fr1_fringe_BW, fr1_slopes_BW = RFR(xout, yout)
+    bar_data[label] = {'modulus': modulus,
+                       'strength': strength,
+                       'color': color}
+    
+    ax1.plot(xout, yout, '-', lw=0.8*max_lw, color=color, label=label)
+    ax2.plot(fr1_fringe_BW, fr1_slopes_BW, '-', lw=0.8*max_lw, color=color, label=label)
+
+
+    #------------------#
+    # Whittaker-Eilers #
+    #------------------#
+    order = 2
+    lmbda = 100_000_000
+    xout, yout = other_smoothers.Whittaker_Eilers(strain, stress, order, lmbda)
+    
+    color = 'tab:purple'   
+    label = 'Whittaker-Eilers (order={}, {}={})'.format(order, r'$\lambda$', lmbda)
+    
+    modulus, strength, fr1_fringe_BW, fr1_slopes_BW = RFR(xout, yout)
+    bar_data[label] = {'modulus': modulus,
+                       'strength': strength,
+                       'color': color}
+    
+    ax1.plot(xout, yout, '-', lw=0.6*max_lw, color=color, label=label)
+    ax2.plot(fr1_fringe_BW, fr1_slopes_BW, '-', lw=0.6*max_lw, color=color, label=label)
+    
+    
+    #---------------#
+    #Savitzky-Golay #
+    #---------------#
+    order = 1
+    window = 200
+    xout, yout = other_smoothers.SavitzkyGolay(strain, stress, window, order)
+    
+    color = 'tab:cyan'   
+    label = 'Savitzky-Golay (order={}, window={})'.format(order, window)
+    
+    modulus, strength, fr1_fringe_BW, fr1_slopes_BW = RFR(xout, yout)
+    bar_data[label] = {'modulus': modulus,
+                       'strength': strength,
+                       'color': color}
+    
+    ax1.plot(xout, yout, '-', lw=0.4*max_lw, color=color, label=label)
+    ax2.plot(fr1_fringe_BW, fr1_slopes_BW, '-', lw=0.4*max_lw, color=color, label=label)
+    
+    
+    #----------------#
+    # Moving average #
+    #----------------#
+    window = 200
+    xout, yout = other_smoothers.moving_average(strain, stress, window)
+    
+    color = 'tab:orange'   
+    label = 'Moving average (window={})'.format(window)
+    
+    modulus, strength, fr1_fringe_BW, fr1_slopes_BW = RFR(xout, yout)
+    bar_data[label] = {'modulus': modulus,
+                       'strength': strength,
+                       'color': color}
+    
+    ax1.plot(xout, yout, '-', lw=0.2*max_lw, color=color, label=label)
+    ax2.plot(fr1_fringe_BW, fr1_slopes_BW, '-', lw=0.2*max_lw, color=color, label=label)
+
+    
+    
+    
+    
+
+
+
+
+
+    #-------------------------------#
+    # Plot labeling for ax1 and ax2 #
+    #-------------------------------#
     ax1.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
     ax1.set_xlabel('True Strain', fontsize=fs)
     ax1.set_ylabel('True Stress (MPa)', fontsize=fs)
@@ -353,44 +445,56 @@ if __name__ == "__main__":
     ax1.set_xlim(xlimits)
     ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
-    ax3.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    ax3.plot(strain, filtered_stress_esd, '-', lw=2, color='#2c7fb8ff', label='Filtered data\n({}$_c$ from ESD)'.format(r'$\omega$'))
-    ax3.plot(x_yield_esd, y_yield_esd, 'o', ms=8, color='tab:purple', label='Yield point (x,y)\n({:.4f}, {:.4f})'.format(x_yield_esd, y_yield_esd))
-    ax3.plot(youngs_modulus_x_esd, youngs_modulus_y_esd, '-', lw=4, color='#ff9d3aff', label="Young's modulus\n{:.4f}".format(youngs_modulus_coeffs_esd[1]))
-    ax3.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=0.75*fs)
-    ax3.set_xlabel('True Strain', fontsize=fs)
-    ax3.set_ylabel('True Stress (MPa)', fontsize=fs)
-    ax3.tick_params(axis='both', which='major', labelsize=fs)
-    ax3.set_xlim(xlimits)
-    ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
-    if str(wn).startswith('op'):
-        ax2.stem(wns_stress, psd_stress, linefmt='tab:blue', basefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/N$')
-        ax2.plot(wn_stress_psd, power_stress_psd, 'o', ms=8, color='#ff9d3aff', label='{}$_c$ ({:.3f}, {:.3f})'.format(r'$\omega$', wn_stress_psd, power_stress_psd))
-        ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Average power={:.4f}'.format(mean_stress_psd))
-        ax2.legend(loc='upper right', bbox_to_anchor=(1.0, 1.0), fancybox=True, ncol=1, fontsize=0.75*fs)
-        ax2.set_xlabel('Normalized Frequencies, {}'.format(r'$\omega$'), fontsize=fs)
-        ax2.set_ylabel('Power Spectral Density (PSD)', fontsize=fs)
-        ax2.tick_params(axis='both', which='major', labelsize=fs)
-        ax2.set_xlim((-0.001, 0.03)) # Comment/uncomment for xlimits
-        ax2.set_ylim((-1*mean_stress_psd, 30*mean_stress_psd)) # Comment/uncomment for xlimits
-        ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-        
+    ax2.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
+    ax2.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax2.set_ylabel('Fringe response (MPa)', fontsize=fs)
+    ax2.tick_params(axis='both', which='major', labelsize=fs)
+    ax2.set_xlim(xlimits)
+    ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    
+    
+    #--------------#
+    # Bar plotting #
+    #--------------#
+    labels, moduli, strengths, colors = [], [], [], []
+    for label in bar_data:
+        labels.append( label.split('(')[0].strip() )
+        for key, value in bar_data[label].items():
+            if key == 'modulus': moduli.append(value)
+            if key == 'strength': strengths.append(value)
+            if key == 'color': colors.append(value)
 
-        ax4.stem(wns_stress, esd_stress, linefmt='tab:blue', basefmt='tab:blue', markerfmt='.', label='$|X(f)|^2/2T$')
-        ax4.plot(wn_stress_esd, power_stress_esd, 'o', ms=8, color='#ff9d3aff', label='{}$_c$ ({:.3f}, {:.3f})'.format(r'$\omega$', wn_stress_esd, power_stress_esd))
-        ax4.axhline(mean_stress_esd, color='#ff9d3aff', ls='--', lw=2, label='Average energy={:.3f}'.format(mean_stress_esd))
-        ax4.legend(loc='upper right', bbox_to_anchor=(1.0, 1.0), fancybox=True, ncol=1, fontsize=0.75*fs)
-        ax4.set_xlabel('Normalized Frequencies, {}'.format(r'$\omega$'), fontsize=fs)
-        ax4.set_ylabel('Energy Spectral Density (ESD)', fontsize=fs)
-        ax4.tick_params(axis='both', which='major', labelsize=fs)
-        ax4.set_xlim((-0.001, 0.03)) # Comment/uncomment for xlimits
-        ax4.set_ylim((-1*mean_stress_esd, 30*mean_stress_esd)) # Comment/uncomment for xlimits
-        ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+            
+
+    bars = ax3.bar(labels, moduli, color=colors)
+    ax3.set_ylabel("Young's modulus (GPa)", fontsize=fs)
+    ax3.set_ylim(0, round(1.25*max(moduli), -1) )
+    ax3.tick_params(axis='x', labelsize=fs, colors='black')
+    ax3.tick_params(axis='y', labelsize=fs, colors='black')
+    ax3.set_xticklabels(labels, rotation=45, ha='right')
+    ax3.bar_label(bars, labels=['{:.2f}'.format(i) for i in moduli], padding=-12)
+    ax3.axhline(np.mean(np.array(moduli)), linestyle='--', lw=1.5, zorder=0, color='#bbbbbbff', label='Average over all smoothers')
+    ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    ax3.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
+    
+    
+    
+    bars = ax4.bar(labels, strengths, color=colors)
+    ax4.set_ylabel("Yield Strength (MPa)", fontsize=fs)
+    ax4.set_ylim(0, round(1.25*max(strengths), -1) )
+    ax4.tick_params(axis='x', labelsize=fs, colors='black')
+    ax4.tick_params(axis='y', labelsize=fs, colors='black')
+    ax4.set_xticklabels(labels, rotation=45, ha='right')
+    ax4.bar_label(bars, labels=['{:.2f}'.format(i) for i in strengths], padding=-12)
+    ax4.axhline(np.mean(np.array(strengths)), linestyle='--', lw=1.5, zorder=0, color='#bbbbbbff', label='Average over all smoothers')
+    ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=0.75*fs)
+
         
 
     
     fig.tight_layout()
-    #plt.show()
-    basename = logfile[:logfile.rfind('.')] + '_PSD_vs_ESD'
+    plt.show()
+    basename = logfile[:logfile.rfind('.')] + '_SMOOTHERS'
     fig.savefig(basename+'.jpeg', dpi=1000)
