@@ -54,19 +54,22 @@ import scipy as sp
 logfile = 'logfiles/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF.log.lammps'
 strain_direction = 'x'
 
-# logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
-# strain_direction = 'z'
+logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
+strain_direction = 'z'
 
-# logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
-# strain_direction = 'y'
+logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
+strain_direction = 'y'
 
-# logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
-# strain_direction = 'x'
+logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
+strain_direction = 'x'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
 # *NOTE: You minimally need one keyword where 'Step' is a good choice.*
 keywords = ['Step']
+
+# Set strain rate
+strain_rate = 2e8 # 1/s
 
 
 # Set the sections of the logfile to get data from. Sections are counted
@@ -357,19 +360,19 @@ if __name__ == "__main__":
         
         # Put other units on top X-axis
         freq, wns, sample_rate = compute_freq(strain)
-        def wn2freq(wns):
-            return wns*(0.5*sample_rate)
+        def wn2freq(wns): # Tera-hertz
+            return wns*(0.5*sample_rate)*(strain_rate*1e-12)
         
         def freq2wn(freq):
             return freq/(0.5*sample_rate)
         
         ax2Top = ax2.secondary_xaxis('top', functions=(wn2freq, freq2wn))   
-        ax2Top.set_xlabel('Cycles per unit True Strain, {}{}'.format(r'$\epsilon$', '$^{-1}$'), fontsize=fs)
+        ax2Top.set_xlabel('Time Domain (THz)', fontsize=fs)
         ax2Top.tick_params(axis='both', which='major', labelsize=fs)
                 
 
         ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Normalized : {}$_c$={:.4f}'.format(r'$\omega$', wn_stress))
-        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Absolute      : {}$_c$={:.4f}'.format(r'$\omega$', wn_stress*(0.5*sample_rate)))
+        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Absolute      : {}$_c$={:.4f}'.format(r'$\omega$', wn2freq(wn_stress)) )
         ax2.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax2.set_xlabel('Normalized Frequencies, {}'.format(r'$\omega$'), fontsize=fs)
         ax2.set_ylabel('Power Spectral Density', fontsize=fs, color=color)

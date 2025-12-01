@@ -351,7 +351,7 @@ if __name__ == "__main__":
 
         ax1.axvline(wn_stress*(0.5*sample_rate), color='#ff9d3aff', ls='--', lw=2, label='Cutoff: {}$_c$={:.4f}'.format(r'$\omega$', wn_stress*(0.5*sample_rate)))
         ax1.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-        ax1.set_xlabel('Cycles per unit True Strain, {}{}'.format(r'$\epsilon$', '$^{-1}$'), fontsize=fs)
+        ax1.set_xlabel('Cycles max(Strain), {}{}'.format(r'$\epsilon$', '$^{-1}$'), fontsize=fs)
         ax1.set_ylabel('Power Spectral Density', fontsize=fs, color=color)
         ax1.tick_params(axis='x', which='major', labelsize=fs, colors='black')
         ax1.tick_params(axis='y', which='major', labelsize=fs, colors=color)

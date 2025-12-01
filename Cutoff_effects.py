@@ -61,8 +61,8 @@ strain_direction = 'x'
 # logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
 # strain_direction = 'y'
 
-logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
-strain_direction = 'x'
+# logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
+# strain_direction = 'x'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
