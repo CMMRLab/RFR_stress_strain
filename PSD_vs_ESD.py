@@ -283,9 +283,14 @@ if __name__ == "__main__":
         reduced_slopes = fr2_slopes[fr2_max_index:-1]
         dstrain, dslopes1, dslopes2 = rfr.compute_derivative(fr2_fringe, fr2_slopes)
         
-        # Step2: Find peaks and valleys of the 2nd derivative using tuned standard deviations
-        prominence = np.std(dslopes2)/3
+        # Step2: Find peaks and valleys of the 2nd derivative
+        dslopes2_diff = np.diff(dslopes2)
+        dslopes2_abs  = np.abs(dslopes2_diff)
+        prominence    = float( max(dslopes2_abs) )
         xpeaks, ypeaks, xvalleys, yvalleys = rfr.find_peaks_and_valleys(dstrain, dslopes2, prominence=prominence)
+        if not np.any(xvalleys):
+            prominence = None
+            xpeaks, ypeaks, xvalleys, yvalleys = rfr.find_peaks_and_valleys(dstrain, dslopes2, prominence=prominence)
         
         # Step3: Use first valley with respect to strain as the yield point (if any valleys exist)
         yield_index, x_yield, y_yield, x_yield_d2, y_yield_d2 = None, None, None, None, None
