@@ -40,6 +40,7 @@ import modules.read_log as read_log
 import modules.signals as signals
 import modules.rfr as rfr
 from cycler import cycler
+from matplotlib.ticker import ScalarFormatter
 import matplotlib.pyplot as plt
 import matplotlib as mpl  
 mpl.rc('font',family='Calibri')
@@ -203,14 +204,18 @@ def read_and_filter(logfile, stress_column, strain_column, wn, order, quadrant_m
     filtered_stress -= min_stress
     stress -= min_stress
     
+    # Compute the RMS-error of the diff
+    diff = stress - filtered_stress
+    rms  = float(np.sqrt(np.mean(diff**2)))
+    
     # Generate data dict
     data = {'stress': stress,
             'strain': strain,
             'filter': filtered_stress,
             'wns': wns_stress,
             'psd': psd_stress,
-            'wn': wn_stress
-            }
+            'rms': rms,
+            'wn': wn_stress}
     
     return data
 
@@ -251,6 +256,9 @@ if __name__ == "__main__":
     data_10K  = read_and_filter(logfile_10K,  stress_column, strain_column, wn, order, quadrant_mirror)
     data_5K   = read_and_filter(logfile_5K,   stress_column, strain_column, wn, order, quadrant_mirror)
     
+    temp = [300,              150,              75,              38,              19,              10,              5]
+    rms  = [data_300K['rms'], data_150K['rms'], data_75K['rms'], data_38K['rms'], data_19K['rms'], data_10K['rms'], data_5K['rms']]
+    
     
     #---------------------------------#
     # Plot the results of this method #
@@ -271,20 +279,21 @@ if __name__ == "__main__":
 
     # Set xlimits
     xdelta, ydelta = 0.01, 10
-    min_strain, max_strain = 0, 0.03
-    min_stress, max_stress = 0, 80
+    min_strain, max_strain = 0, 0.15
+    min_stress, max_stress = 0, 400
     xlimits = (min_strain - xdelta, max_strain + xdelta)
     ylimits = (min_stress - ydelta, max_stress + ydelta)
 
     
     # Set fontsize
-    fs = 12
+    fs = 10
     legend_fs_scale = 1.0
-    label_rel_pos = (0.005, 0.98)
+    label_rel_pos = (0.01, 0.98)
 
     # Start plotting data
-    dim = 3
-    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(2*dim, 3*dim))
+    plt.close('all')
+    dim = 2.25
+    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2, figsize=(2*(1.2*dim), 4*dim))
 
 
     ax1.plot(data_300K['strain'], data_300K['stress'], '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
@@ -297,7 +306,7 @@ if __name__ == "__main__":
     ax1.text(*label_rel_pos, '(a) - 300 K', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     #        (center, height, span, height)
-    anchor = (0.0,    1.2,    2.2,  0.1)
+    anchor = (0.0,    1.3,    2.2,  0.1)
     markerscale = 1
     ncol = 2
     ax1.legend(bbox_to_anchor=anchor, loc=2, ncol=ncol, mode='expand', fontsize=legend_fs_scale*fs, markerscale=markerscale)
@@ -351,7 +360,26 @@ if __name__ == "__main__":
     ax6.set_xlim(xlimits)
     ax6.set_ylim(ylimits)
     ax6.text(*label_rel_pos, '(f) - 10 K', transform=ax6.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-        
+    
+    ax7.plot(data_5K['strain'], data_5K['stress'], '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
+    ax7.plot(data_5K['strain'], data_5K['filter'], '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
+    #ax7.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax7.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax7.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
+    ax7.tick_params(axis='both', which='major', labelsize=fs)
+    ax7.set_xlim(xlimits)
+    ax7.set_ylim(ylimits)
+    ax7.text(*label_rel_pos, '(g) - 5 K', transform=ax7.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    
+    
+    ax8.plot(temp, rms, '-o', ms=6, lw=2, color='tab:purple', label='RMS')
+    ax8.set_xscale('log')
+    ax8.xaxis.set_major_formatter(ScalarFormatter())
+    ax8.text(*label_rel_pos, '(h)', transform=ax8.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    
+    ax8.set_xlabel('Temperature (K)', fontsize=fs)
+    ax8.set_ylabel('RMS stress residual', fontsize=fs)
+    ax8.tick_params(axis='both', which='major', labelsize=fs)
 
         
     

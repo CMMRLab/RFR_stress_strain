@@ -180,7 +180,7 @@ def maximized_slope(fringe, slopes, machine_precision=1e-8):
     else: xhi = 0; yhi = 0
     return xhi, yhi
 
-def RFR(strain, stress, minxhi, maxxhi):
+def RFR(strain, stress, minxhi, maxxhi, plot_2d=False):
     # Shift all data by the "minimum before the maximum" to remove any residual 
     # stress. The "minimum before the maximum" allows for fracture to occur where
     # the minimum stress is near zero strain and not maximum strain (in case fracture
@@ -275,6 +275,22 @@ def RFR(strain, stress, minxhi, maxxhi):
         x_yield = strain[yield_index]
         y_yield = stress[yield_index]
         
+    # The valley method does not work well for elastic perfectly plastic
+    # stress-strain curves. Thus we will use the minimum of the 2nd 
+    # derivatives.
+    mindex = np.argmin(dslopes2)
+    x_yield_d2 = dstrain[mindex]
+    y_yield_d2 = dslopes2[mindex]
+    yield_index = np.min(np.where(strain == x_yield_d2)[0])
+    x_yield = strain[yield_index]
+    y_yield = stress[yield_index]
+        
+    if plot_2d:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+        ax.plot(dstrain, dslopes2, '.', ms=6, color='tab:blue')
+        ax.plot(xvalleys, yvalleys, '*', ms=6, color='tab:orange')
+        ax.plot((x_yield_d2), (y_yield_d2), 's', ms=10, color='tab:red')
+        
         
     xlo_index = np.min(np.where(strain == xlo)[0])
     xhi_index = np.min(np.where(strain == xhi)[0])
@@ -299,26 +315,34 @@ ylimits = (min_stress - ydelta, max_stress + ydelta)
 
 # Set fontsize
 plt.close('all')
-fs = 12
+fs = 14
 legend_fs_scale = 1.0
 label_rel_pos = (0.005, 0.98)
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12.5, 9))
 
-color_epp     = '#41b6c4ff' #'#bbbbbbff'
+color_epp     = '#41b6c4ff' 
 color_wave    = '#a1dab4ff'
 
 color_thermal = '#bbbbbbff'
 color_filter  = '#2c7fb8ff'
 
 color_slope   = '#ff9d3aff'
+color_yield   = 'tab:purple'
+
+
+label_epp     = 'Elastic–perfectly plastic (EPP)'
+label_wave    = 'Wave = {}*sin(2*π*strain/{})'.format(amp, wavelength)
+label_wave    = 'Mid-frequency error (Wave)'
+label_thermal = 'Thermal signal = EPP + Wave'
+label_filter  = 'Butterworth(Thermal signal)'
 
 
 # Simualted data
-ax1.plot(strain, stress,       '--', lw=3, zorder=2, color=color_epp,  label='Elastic–perfectly plastic - (EPP)')
-ax1.plot(strain, wave,         '--', lw=3, zorder=2, color=color_wave, label='Wave = {}*sin(2*π*strain/{})'.format(amp, wavelength))
+ax1.plot(strain, stress,       '--', lw=4, zorder=2, color=color_epp,  label=label_epp)
+ax1.plot(strain, wave,         '--', lw=4, zorder=2, color=color_wave, label=label_wave)
 
-ax1.plot(strain, thermal,      '-',  lw=4, zorder=1, color=color_thermal, label='Thermal = EPP + Wave')
-ax1.plot(strain, filtered,     '-',  lw=4, zorder=1, color=color_filter,  label='Butterworth(Thermal)')
+ax1.plot(strain, thermal,      '-',  lw=4, zorder=1, color=color_thermal, label=label_thermal)
+ax1.plot(strain, filtered,     '-',  lw=4, zorder=1, color=color_filter,  label=label_filter)
 
 ax1.legend(loc='upper right', bbox_to_anchor=(1, 0.6), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
 ax1.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
@@ -331,10 +355,11 @@ ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight
 # Running RFR on EPP
 minxhi = 0.002
 youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, stress, minxhi, maxxhi)
-ax2.plot(strain, stress,                     '-', lw=4, zorder=2, color=color_epp,                label='Elastic–perfectly plastic - (EPP)')
-ax2.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f}".format(youngs_modulus))
+ax2.plot(strain, stress,                    '--',  lw=4, zorder=2, color=color_epp,                label=label_epp)
+ax2.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f} (MPa)".format(youngs_modulus))
+ax2.plot([yp[0]], [yp[1]], 'o', ms=12, zorder=2, color=color_yield, label="RFR - Yield Point = {:,.4f} (MPa)".format(yp[1]))
 
-ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.2), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.30), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
 ax2.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
 ax2.set_ylabel(r'Stress, $\sigma$ (MPa)', fontsize=fs)
 ax2.tick_params(axis='both', which='major', labelsize=fs)
@@ -346,12 +371,13 @@ ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight
 # Running RFR on Thermal
 minxhi = 0.002
 youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, thermal, minxhi, maxxhi)
-ax3.plot(strain, stress,       '--', lw=3, zorder=2, color=color_epp,     label='Elastic–perfectly plastic - (EPP)')
-ax3.plot(strain, thermal,      '-',  lw=4, zorder=1, color=color_thermal, label='Thermal = EPP + Wave')
+ax3.plot(strain, stress,       '--', lw=4, zorder=2, color=color_epp,     label=label_epp)
+ax3.plot(strain, thermal,      '-',  lw=4, zorder=1, color=color_thermal, label=label_thermal)
 
-ax3.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f}".format(youngs_modulus))
+ax3.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f} (MPa)".format(youngs_modulus))
+ax3.plot([yp[0]], [yp[1]], 'o', ms=12, zorder=2, color=color_yield, label="RFR - Yield Point = {:,.4f} (MPa)".format(yp[1]))
 
-ax3.legend(loc='upper right', bbox_to_anchor=(1, 0.25), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+ax3.legend(loc='upper right', bbox_to_anchor=(1, 0.35), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
 ax3.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
 ax3.set_ylabel(r'Stress, $\sigma$ (MPa)', fontsize=fs)
 ax3.tick_params(axis='both', which='major', labelsize=fs)
@@ -363,12 +389,13 @@ ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight
 # Running RFR on filtered
 minxhi = 0.02
 youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, filtered, minxhi, maxxhi)
-ax4.plot(strain, stress,       '--', lw=3, zorder=2, color=color_epp,    label='Elastic–perfectly plastic - (EPP)')
-ax4.plot(strain, filtered,     '-',  lw=4, zorder=1, color=color_filter, label='Butterworth(Thermal)')
+ax4.plot(strain, stress,       '--', lw=4, zorder=2, color=color_epp,    label=label_epp)
+ax4.plot(strain, filtered,     '-',  lw=4, zorder=1, color=color_filter, label=label_filter)
 
-ax4.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f}".format(youngs_modulus))
+ax4.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f} (MPa)".format(youngs_modulus))
+ax4.plot([yp[0]], [yp[1]], 'o', ms=12, zorder=2, color=color_yield, label="RFR - Yield Point = {:,.4f} (MPa)".format(yp[1]))
 
-ax4.legend(loc='upper right', bbox_to_anchor=(1, 0.25), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+ax4.legend(loc='upper right', bbox_to_anchor=(1, 0.35), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
 ax4.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
 ax4.set_ylabel(r'Stress, $\sigma$ (MPa)', fontsize=fs)
 ax4.tick_params(axis='both', which='major', labelsize=fs)
