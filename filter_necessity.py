@@ -338,11 +338,11 @@ label_filter  = 'Butterworth(Thermal signal)'
 
 
 # Simualted data
-ax1.plot(strain, stress,       '--', lw=4, zorder=2, color=color_epp,  label=label_epp)
-ax1.plot(strain, wave,         '--', lw=4, zorder=2, color=color_wave, label=label_wave)
+ax1.plot(strain, stress,       '--', lw=6, zorder=2, color=color_epp,  label=label_epp)
+ax1.plot(strain, wave,         '-', lw=6, zorder=2, color=color_wave, label=label_wave)
 
-ax1.plot(strain, thermal,      '-',  lw=4, zorder=1, color=color_thermal, label=label_thermal)
-ax1.plot(strain, filtered,     '-',  lw=4, zorder=1, color=color_filter,  label=label_filter)
+ax1.plot(strain, thermal,      '-',  lw=6, zorder=1, color=color_thermal, label=label_thermal)
+ax1.plot(strain, filtered,     '-',  lw=6, zorder=1, color=color_filter,  label=label_filter)
 
 ax1.legend(loc='upper right', bbox_to_anchor=(1, 0.6), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
 ax1.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
@@ -355,9 +355,9 @@ ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight
 # Running RFR on EPP
 minxhi = 0.002
 youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, stress, minxhi, maxxhi)
-ax2.plot(strain, stress,                    '--',  lw=4, zorder=2, color=color_epp,                label=label_epp)
-ax2.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f} (MPa)".format(youngs_modulus))
-ax2.plot([yp[0]], [yp[1]], 'o', ms=12, zorder=2, color=color_yield, label="RFR - Yield Point = {:,.4f} (MPa)".format(yp[1]))
+ax2.plot(strain, stress,                     '--', lw=6, zorder=2, color=color_epp,                label=label_epp)
+ax2.plot(youngs_modulus_x, youngs_modulus_y, '--', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f} (MPa)".format(youngs_modulus))
+ax2.plot([yp[0]], [yp[1]], 'o', ms=12, zorder=2, mfc=color_yield, markeredgecolor='black', label="RFR - Yield Point = {:,.4f} (MPa)".format(yp[1]))
 
 ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.30), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
 ax2.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
@@ -371,11 +371,11 @@ ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight
 # Running RFR on Thermal
 minxhi = 0.002
 youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, thermal, minxhi, maxxhi)
-ax3.plot(strain, stress,       '--', lw=4, zorder=2, color=color_epp,     label=label_epp)
-ax3.plot(strain, thermal,      '-',  lw=4, zorder=1, color=color_thermal, label=label_thermal)
+ax3.plot(strain, stress,       '--', lw=6, zorder=2, color=color_epp,     label=label_epp)
+ax3.plot(strain, thermal,      '-',  lw=6, zorder=1, color=color_thermal, label=label_thermal)
 
-ax3.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f} (MPa)".format(youngs_modulus))
-ax3.plot([yp[0]], [yp[1]], 'o', ms=12, zorder=2, color=color_yield, label="RFR - Yield Point = {:,.4f} (MPa)".format(yp[1]))
+ax3.plot(youngs_modulus_x, youngs_modulus_y, '--', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f} (MPa)".format(youngs_modulus))
+ax3.plot([yp[0]], [yp[1]], 'o', ms=12, zorder=2, mfc=color_yield, markeredgecolor='black', label="RFR - Yield Point = {:,.4f} (MPa)".format(yp[1]))
 
 ax3.legend(loc='upper right', bbox_to_anchor=(1, 0.35), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
 ax3.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
@@ -389,11 +389,11 @@ ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight
 # Running RFR on filtered
 minxhi = 0.02
 youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, filtered, minxhi, maxxhi)
-ax4.plot(strain, stress,       '--', lw=4, zorder=2, color=color_epp,    label=label_epp)
-ax4.plot(strain, filtered,     '-',  lw=4, zorder=1, color=color_filter, label=label_filter)
+ax4.plot(strain, stress,       '--', lw=6, zorder=2, color=color_epp,    label=label_epp)
+ax4.plot(strain, filtered,     '-',  lw=6, zorder=1, color=color_filter, label=label_filter)
 
-ax4.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f} (MPa)".format(youngs_modulus))
-ax4.plot([yp[0]], [yp[1]], 'o', ms=12, zorder=2, color=color_yield, label="RFR - Yield Point = {:,.4f} (MPa)".format(yp[1]))
+ax4.plot(youngs_modulus_x, youngs_modulus_y, '--', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f} (MPa)".format(youngs_modulus))
+ax4.plot([yp[0]], [yp[1]], 'o', ms=12, zorder=2, mfc=color_yield, markeredgecolor='black', label="RFR - Yield Point = {:,.4f} (MPa)".format(yp[1]))
 
 ax4.legend(loc='upper right', bbox_to_anchor=(1, 0.35), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
 ax4.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
