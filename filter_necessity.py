@@ -192,7 +192,7 @@ def RFR(strain, stress):
     #--------------------------------------------------------#
     # Compute the forward-backwards-forwards fringe response #
     #--------------------------------------------------------#
-    machine_precision = 1e-6
+    machine_precision = 1e-4
     # Step1: First forward response (fr1 - applying minxhi and maxxhi accordingly)
     min_strain_fr1 = min(strain); max_strain_fr1 = max(strain)
     if minxhi > 0: min_strain_fr1 = minxhi 
@@ -302,7 +302,7 @@ plt.close('all')
 fs = 12
 legend_fs_scale = 1.0
 label_rel_pos = (0.005, 0.98)
-fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14.5, 9))
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12.5, 9))
 
 color_epp     = '#41b6c4ff' #'#bbbbbbff'
 color_wave    = '#a1dab4ff'
@@ -320,9 +320,9 @@ ax1.plot(strain, wave,         '--', lw=3, zorder=2, color=color_wave, label='Wa
 ax1.plot(strain, thermal,      '-',  lw=4, zorder=1, color=color_thermal, label='Thermal = EPP + Wave')
 ax1.plot(strain, filtered,     '-',  lw=4, zorder=1, color=color_filter,  label='Butterworth(Thermal)')
 
-ax1.legend(loc='upper right', bbox_to_anchor=(1, 0.65), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-ax1.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
-ax1.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
+ax1.legend(loc='upper right', bbox_to_anchor=(1, 0.6), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+ax1.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
+ax1.set_ylabel(r'Stress, $\sigma$ (MPa)', fontsize=fs)
 ax1.tick_params(axis='both', which='major', labelsize=fs)
 ax1.set_xlim(xlimits)
 ax1.set_ylim(ylimits)
@@ -333,9 +333,9 @@ youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, stress)
 ax2.plot(strain, stress,                     '-', lw=4, zorder=2, color=color_epp,                label='Elastic–perfectly plastic - (EPP)')
 ax2.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f}".format(youngs_modulus))
 
-ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.3), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-ax2.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
-ax2.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
+ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.2), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+ax2.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
+ax2.set_ylabel(r'Stress, $\sigma$ (MPa)', fontsize=fs)
 ax2.tick_params(axis='both', which='major', labelsize=fs)
 ax2.set_xlim(xlimits)
 ax2.set_ylim(ylimits)
@@ -349,9 +349,9 @@ ax3.plot(strain, thermal,      '-',  lw=4, zorder=1, color=color_thermal, label=
 
 ax3.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f}".format(youngs_modulus))
 
-ax3.legend(loc='upper right', bbox_to_anchor=(1, 0.3), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-ax3.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
-ax3.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
+ax3.legend(loc='upper right', bbox_to_anchor=(1, 0.25), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+ax3.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
+ax3.set_ylabel(r'Stress, $\sigma$ (MPa)', fontsize=fs)
 ax3.tick_params(axis='both', which='major', labelsize=fs)
 ax3.set_xlim(xlimits)
 ax3.set_ylim(ylimits)
@@ -365,10 +365,15 @@ ax4.plot(strain, filtered,     '-',  lw=4, zorder=1, color=color_filter, label='
 
 ax4.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f}".format(youngs_modulus))
 
-ax4.legend(loc='upper right', bbox_to_anchor=(1, 0.3), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-ax4.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
-ax4.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
+ax4.legend(loc='upper right', bbox_to_anchor=(1, 0.25), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+ax4.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
+ax4.set_ylabel(r'Stress, $\sigma$ (MPa)', fontsize=fs)
 ax4.tick_params(axis='both', which='major', labelsize=fs)
 ax4.set_xlim(xlimits)
 ax4.set_ylim(ylimits)
 ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+
+
+fig.tight_layout()
+basename = 'filter_necessity'
+fig.savefig(basename+'.jpeg', dpi=300)
