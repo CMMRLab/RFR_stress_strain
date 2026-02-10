@@ -205,8 +205,8 @@ def read_and_filter(logfile, stress_column, strain_column, wn, order, quadrant_m
     stress -= min_stress
     
     # Compute the RMS-error of the diff
-    diff = stress - filtered_stress
-    rms  = float(np.sqrt(np.mean(diff**2)))
+    diff = abs(stress - filtered_stress)
+    rms  = float(np.mean(diff))
     
     # Generate data dict
     data = {'stress': stress,
@@ -379,7 +379,7 @@ if __name__ == "__main__":
     ax8.text(*label_rel_pos, '(h)', transform=ax8.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     ax8.set_xlabel('Temperature (K)', fontsize=fs)
-    ax8.set_ylabel('RMS stress residual', fontsize=fs)
+    ax8.set_ylabel('mean(abs(residuals))', fontsize=fs)
     ax8.tick_params(axis='both', which='major', labelsize=fs)
 
         
