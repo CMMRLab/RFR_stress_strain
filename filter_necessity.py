@@ -69,8 +69,8 @@ wavelength = 0.003  # strain units
 # linear region to search as the "wiggles" can maximize the fringe-slope response at fairly large strains. Examples:
 #   maxxhi=0.03
 #   maxxhi=0.05
-minxhi = 0.0025
-maxxhi = 0.0000
+minxhi = 0.002
+maxxhi = 0.000
 
 
 # Filter settings
@@ -124,7 +124,7 @@ maxxhi = 0.0000
 #   qm=msr-p
 order = 2
 wn = 'op'
-quadrant_mirror = '1,1'
+quadrant_mirror = '3,2'
 
 
 
@@ -149,7 +149,7 @@ if str(wn).startswith('op'):
 
     # Find where each PSD crosses the mean
     wn_index = np.min(np.where(psd_stress < mean_stress_psd)[0])
-    wn_stress = wns_stress[wn_index]/1.2
+    wn_stress = wns_stress[wn_index]
     print('{:<50} {} {}'.format('Computed normalized cutoff frequency for stress: ', wn_stress, wn_index))
 
 
@@ -180,7 +180,7 @@ def maximized_slope(fringe, slopes, machine_precision=1e-8):
     else: xhi = 0; yhi = 0
     return xhi, yhi
 
-def RFR(strain, stress):
+def RFR(strain, stress, minxhi, maxxhi):
     # Shift all data by the "minimum before the maximum" to remove any residual 
     # stress. The "minimum before the maximum" allows for fracture to occur where
     # the minimum stress is near zero strain and not maximum strain (in case fracture
@@ -329,7 +329,8 @@ ax1.set_ylim(ylimits)
 ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
 
 # Running RFR on EPP
-youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, stress)
+minxhi = 0.002
+youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, stress, minxhi, maxxhi)
 ax2.plot(strain, stress,                     '-', lw=4, zorder=2, color=color_epp,                label='Elastic–perfectly plastic - (EPP)')
 ax2.plot(youngs_modulus_x, youngs_modulus_y, '-', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f}".format(youngs_modulus))
 
@@ -343,7 +344,8 @@ ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight
 
 
 # Running RFR on Thermal
-youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, thermal)
+minxhi = 0.002
+youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, thermal, minxhi, maxxhi)
 ax3.plot(strain, stress,       '--', lw=3, zorder=2, color=color_epp,     label='Elastic–perfectly plastic - (EPP)')
 ax3.plot(strain, thermal,      '-',  lw=4, zorder=1, color=color_thermal, label='Thermal = EPP + Wave')
 
@@ -359,7 +361,8 @@ ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight
 
 
 # Running RFR on filtered
-youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, filtered)
+minxhi = 0.02
+youngs_modulus_x, youngs_modulus_y, youngs_modulus, yp = RFR(strain, filtered, minxhi, maxxhi)
 ax4.plot(strain, stress,       '--', lw=3, zorder=2, color=color_epp,    label='Elastic–perfectly plastic - (EPP)')
 ax4.plot(strain, filtered,     '-',  lw=4, zorder=1, color=color_filter, label='Butterworth(Thermal)')
 
