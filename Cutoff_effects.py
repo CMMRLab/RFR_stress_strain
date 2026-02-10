@@ -350,7 +350,7 @@ if __name__ == "__main__":
         indexes = [int(wn_index)]
         lo = int(wn_index/6)
         hi = int(2*wn_index)
-        inc = lo
+        inc = 2 #lo
         for i in range(lo, hi, inc):
             indexes.append( int(wn_index + 2*i) )
             indexes.append( int(wn_index - i) )

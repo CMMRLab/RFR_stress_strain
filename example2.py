@@ -50,6 +50,7 @@ import numpy as np
 ##########
 # logfile to read in
 logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
+logfile = 'logfiles/tensile_2_PBZ_pxld_88_replicate_2_FF_PCFF.log.lammps'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
@@ -72,7 +73,7 @@ sections = 1
 
 
 # Set strain direction of 'x' or 'y' or 'z'
-strain_direction = 'z'
+strain_direction = 'y'
 
 
 # Regression fringe response settings

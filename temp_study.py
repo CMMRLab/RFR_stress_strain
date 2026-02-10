@@ -51,17 +51,17 @@ import scipy as sp
 # Inputs #
 ##########
 # logfile to read in
-logfile = 'logfiles/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF.log.lammps'
+logfile_300K = 'logfiles/epoxy_temp_study/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF_temp_300.log.lammps'
+logfile_150K = 'logfiles/epoxy_temp_study/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF_temp_150.log.lammps'
+logfile_75K  = 'logfiles/epoxy_temp_study/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF_temp_75.log.lammps'
+logfile_38K  = 'logfiles/epoxy_temp_study/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF_temp_38.log.lammps'
+logfile_19K  = 'logfiles/epoxy_temp_study/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF_temp_19.log.lammps'
+logfile_10K  = 'logfiles/epoxy_temp_study/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF_temp_10.log.lammps'
+logfile_5K   = 'logfiles/epoxy_temp_study/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF_temp_5.log.lammps'
+
+
 strain_direction = 'x'
 
-# logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
-# strain_direction = 'z'
-
-# logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
-# strain_direction = 'y'
-
-# logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
-# strain_direction = 'x'
 
 
 # Set some column keywords to find sections in logfile with thermo data.
@@ -83,7 +83,7 @@ strain_rate = 2e8 # 1/s
 # *NOTE if reading multiple sections from the log file and a column
 #  is missing in a certain section, the get_data function will create
 #  zeros.*
-sections = 1
+sections = 'all'
 
 
 # Regression fringe response settings
@@ -158,43 +158,14 @@ quadrant_mirror = 'msr'
 
 
 
-
-#############################
-# Read log and show example #
-#############################
-if __name__ == "__main__":
-    
-    #-----------------------------------------------------------------------#
-    # Set column variables based on strain_direction (dependent on LAMMPS   #
-    # logged variables - will need to update based on user setup in LAMMPS) #
-    #-----------------------------------------------------------------------#
-    if strain_direction == 'x':
-        stress_column = 'f_sxx_ave'  # Axial stress
-        strain_column = 'v_etruex'   # Axial strain
-        trans1_column = 'v_etruey'   # Transverse strain direction-1
-        trans2_column = 'v_etruez'   # Transverse strain direction-2
-    elif strain_direction == 'y':
-        stress_column = 'f_syy_ave'  # Axial stress
-        strain_column = 'v_etruey'   # Axial strain
-        trans1_column = 'v_etruex'   # Transverse strain direction-1
-        trans2_column = 'v_etruez'   # Transverse strain direction-2
-    elif strain_direction == 'z':
-        stress_column = 'f_szz_ave'  # Axial stress
-        strain_column = 'v_etruez'   # Axial strain
-        trans1_column = 'v_etruex'   # Transverse strain direction-1
-        trans2_column = 'v_etruey'   # Transverse strain direction-2
-    
-    
-    #-------------------------------------------#
-    # Read logfile and get numpy arrays of data #
-    #-------------------------------------------#
+def read_and_filter(logfile, stress_column, strain_column, wn, order, quadrant_mirror):
+    #-----------#
+    # Read data # 
+    #-----------#
     log = read_log.file(logfile, keywords=keywords, pflag=False)
     data = log.get_data(sections, remove_duplicates=True, pflag=False) # {column-name:[list of data]}
     stress = np.array(data[stress_column])
     strain = np.array(data[strain_column])
-    trans1 = np.array(data[trans1_column])
-    trans2 = np.array(data[trans2_column])
-    
     
     #---------------------------------------------------#
     # Filter stress, transverse 1 and 2 directions data #
@@ -231,79 +202,54 @@ if __name__ == "__main__":
     min_stress = np.min(filtered_stress[:max_index])
     filtered_stress -= min_stress
     stress -= min_stress
-
-
-    #-----------------------------------------#
-    # Function to perform a Fourier breakdown #
-    #-----------------------------------------#
-    def FFT_breakdown(x, y, indices, qm):        
-        #-----------------------------------#
-        # Compute the one-sided FFT and PSD #
-        #-----------------------------------#
-        # Define sampling rate and number of data points
-        N = x.shape[0] # number of data points
-        fs = (N-1)/(np.max(x) - np.min(x)) # sampling rate
-        d = 1/fs # sampling space
-
-        # Perform one sided FFT
-        X = np.fft.rfft(y, axis=0, norm='backward')
-        f = np.fft.rfftfreq(N, d=d)
-        
-        # One sided amplitudes at each frequency
-        amp = np.abs(X)/N
-        amp[1:-1] *= 2
-        if N % 2 == 0:
-            amp[-1] /= 2
-
-        # Set a scaling factor of 0 or 1 to cancel out (0) or leave (1) certain frequencies
-        scaling_factors = np.zeros_like(amp)
-        scaling_factors[indices] = 1
-
-        # Use Fourier filter
-        X_clean = scaling_factors*X
-        y_filter = np.fft.irfft(X_clean)
-        
-                
-        # Find the magnitude and phase components
-        max_index = max(indices)
-        amplitude = amp[max_index]
-        frequency = f[max_index]
-        phase = np.angle(X[max_index], deg=True)
-        
-        # Since we are performing a one sided FFT, the Nyquist freq may or may not be inlcuded
-        # depending on even or odd number of data points, so append a value if Nyquist freq is
-        # missing so that y_filter has the same shape as the X-data.
-        if y_filter.shape != x.shape:
-            y_filter = np.append(y_filter, y_filter[-1])
-        return y_filter, phase, frequency, amplitude, freq, amp
     
-    def compute_freq(xdata):
-        # Define sampling rate and number of data points
-        dx = np.mean(np.abs(np.diff(xdata)))
-        if dx != 0: 
-            fs = 1/dx # sampling rate
-        else: fs = xdata.shape[0]/(np.max(xdata) - np.min(xdata))
-        N = xdata.shape[0] # number of data points
-        d = 1/fs # sampling space
-        
-        freq = np.fft.rfftfreq(N, d=d)
-        wns = freq/(0.5*fs) # Normalized freq
-        return freq, wns, fs
-
-
-    def butterworth_amp_response(order=2, wn=0.1):
-        b, a = sp.signal.butter(order, wn, btype='low', analog=False, output='ba', fs=None)
-        f, h = sp.signal.freqz(b, a, worN=4096)
-        f = f / np.pi
-        h = abs(h)
-        return f, h
-
-    def butter_near_amp(nfreq, f, h):
-        index = np.abs(f - nfreq).argmin()
-        return h[index]
-
+    # Generate data dict
+    data = {'stress': stress,
+            'strain': strain,
+            'filter': filtered_stress,
+            'wns': wns_stress,
+            'psd': psd_stress,
+            'wn': wn_stress
+            }
     
+    return data
 
+#############################
+# Read log and show example #
+#############################
+if __name__ == "__main__":
+    
+    #-----------------------------------------------------------------------#
+    # Set column variables based on strain_direction (dependent on LAMMPS   #
+    # logged variables - will need to update based on user setup in LAMMPS) #
+    #-----------------------------------------------------------------------#
+    if strain_direction == 'x':
+        stress_column = 'f_sxx_ave'  # Axial stress
+        strain_column = 'v_etruex'   # Axial strain
+        trans1_column = 'v_etruey'   # Transverse strain direction-1
+        trans2_column = 'v_etruez'   # Transverse strain direction-2
+    elif strain_direction == 'y':
+        stress_column = 'f_syy_ave'  # Axial stress
+        strain_column = 'v_etruey'   # Axial strain
+        trans1_column = 'v_etruex'   # Transverse strain direction-1
+        trans2_column = 'v_etruez'   # Transverse strain direction-2
+    elif strain_direction == 'z':
+        stress_column = 'f_szz_ave'  # Axial stress
+        strain_column = 'v_etruez'   # Axial strain
+        trans1_column = 'v_etruex'   # Transverse strain direction-1
+        trans2_column = 'v_etruey'   # Transverse strain direction-2
+    
+    
+    #-------------------------------------------#
+    # Read logfile and get numpy arrays of data #
+    #-------------------------------------------#
+    data_300K = read_and_filter(logfile_300K, stress_column, strain_column, wn, order, quadrant_mirror)
+    data_150K = read_and_filter(logfile_150K, stress_column, strain_column, wn, order, quadrant_mirror)
+    data_75K  = read_and_filter(logfile_75K,  stress_column, strain_column, wn, order, quadrant_mirror)
+    data_38K  = read_and_filter(logfile_38K,  stress_column, strain_column, wn, order, quadrant_mirror)
+    data_19K  = read_and_filter(logfile_19K,  stress_column, strain_column, wn, order, quadrant_mirror)
+    data_10K  = read_and_filter(logfile_10K,  stress_column, strain_column, wn, order, quadrant_mirror)
+    data_5K   = read_and_filter(logfile_5K,   stress_column, strain_column, wn, order, quadrant_mirror)
     
     
     #---------------------------------#
@@ -320,169 +266,96 @@ if __name__ == "__main__":
               'crimson', 'lime', 'tomato',  'blue', 'orange', 'green', 'purple', 'red', 'gray', 'olive', 'cyan', 'pink', 'tab:brown']
 
 
-    # Function to walk around the color wheel defined by colors and get the next color,
-    # if the color index is exceeds the color wheel, it will reset the color index to 0
-    def walk_colors(color_index, colors):
-        color = colors[color_index]
-        color_index += 1
-        if color_index + 1 > len(colors): color_index = 0
-        return color, color_index
-
     # Set the default color cycle using rcParams
     plt.rcParams['axes.prop_cycle'] = cycler(color=colors)
 
     # Set xlimits
-    delta = 0.01
-    xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta)
-    xlimits = (np.min(strain)-delta, np.max(strain)+1.5*delta+0.175)
+    xdelta, ydelta = 0.01, 10
+    min_strain, max_strain = 0, 0.03
+    min_stress, max_stress = 0, 80
+    xlimits = (min_strain - xdelta, max_strain + xdelta)
+    ylimits = (min_stress - ydelta, max_stress + ydelta)
+
     
     # Set fontsize
-    fs = 11.5
-    legend_fs_scale = 0.575
-    label_rel_pos = (0.005, 0.99)
-    
-    if 'EPON' in logfile:
-        fs = 12.0
-    
-    # Start plotting data
-    #fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14.5, 9))
-    
-    fig = plt.figure(figsize=(10.5, 10))
-    gs = fig.add_gridspec(3, 2)
-    
-    ax1 = fig.add_subplot(gs[0, 0])
-    ax2 = fig.add_subplot(gs[0, 1])
-    ax3 = fig.add_subplot(gs[1, 0])
-    ax4 = fig.add_subplot(gs[1, 1])
-    ax5 = fig.add_subplot(gs[2, :])
+    fs = 12
+    legend_fs_scale = 1.0
+    label_rel_pos = (0.005, 0.98)
 
-    ax1.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    ax1.plot(strain, filtered_stress, '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
-    ax1.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    # Start plotting data
+    dim = 3
+    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(2*dim, 3*dim))
+
+
+    ax1.plot(data_300K['strain'], data_300K['stress'], '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
+    ax1.plot(data_300K['strain'], data_300K['filter'], '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
     ax1.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
     ax1.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
     ax1.set_xlim(xlimits)
-    ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    ax1.set_ylim(ylimits)
+    ax1.text(*label_rel_pos, '(a) - 300 K', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
-    if str(wn).startswith('op'):
-        color = 'tab:blue'
-        ax2.stem(wns_stress, psd_stress, linefmt=color, basefmt=color, markerfmt='.', label='$|X(f)|^2/N$')
-        ax2.axhline(mean_stress_psd, color='#ff9d3aff', ls='--', lw=2, label='Average power={:.4f}'.format(mean_stress_psd))
-
-        
-        # Put other units on top X-axis
-        freq, wns, sample_rate = compute_freq(strain)
-        def wn2freq(wns): # Tera-hertz
-            return wns*(0.5*sample_rate)*(strain_rate*1e-12)
-        
-        def freq2wn(freq):
-            return freq/(0.5*sample_rate)
-        
-        ax2Top = ax2.secondary_xaxis('top', functions=(wn2freq, freq2wn))   
-        ax2Top.set_xlabel('Time Domain (THz)', fontsize=fs)
-        ax2Top.tick_params(axis='both', which='major', labelsize=fs)
-                
-
-        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Normalized : {}$_c$={:.4f}'.format(r'$\omega$', wn_stress))
-        ax2.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Absolute      : {}$_c$={:.4f}'.format(r'$\omega$', wn2freq(wn_stress)) )
-        ax2.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-        ax2.set_xlabel('Normalized Frequencies, {}'.format(r'$\omega$'), fontsize=fs)
-        ax2.set_ylabel('Power Spectral Density', fontsize=fs, color=color)
-        ax2.tick_params(axis='x', which='major', labelsize=fs, colors='black')
-        ax2.tick_params(axis='y', which='major', labelsize=fs, colors=color)
-        ax2.set_xlim((-0.001, 0.02)) # Comment/uncomment for xlimits
-        ax2.set_ylim((-1*mean_stress_psd, 30*mean_stress_psd)) # Comment/uncomment for xlimits
-        ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-        
-        
-        ax2Left = ax2.twinx()
-        color = 'tab:purple'
-        f, h = butterworth_amp_response(order=4, wn=wn_stress)
-        ax2Left.plot(f, h, lw=2, color=color, label='Butterworth (n=4)')
-        ax2Left.axhline(1/np.sqrt(2) , linestyle='--', lw=1.5, color='tab:purple', label='-3 dB level (~0.707)')
-        ax2Left.set_ylabel('|H(jω)|', fontsize=fs, color=color)
-        ax2Left.tick_params(axis='both', which='major', labelsize=fs, colors=color)
-        ax2Left.set_xlim((-0.001, 0.02)) # Comment/uncomment for xlimits
-        ax2Left.legend(loc='upper right', bbox_to_anchor=(1, 0.675), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-        
-
-
-    color_index = 0
-    ax3.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    comp_wave_1 = np.zeros_like(stress)
-    comp_wave_2 = np.zeros_like(stress)
-    lo = 0
-    hi = wn_index
-    for i in range(lo, hi+1):
-        wave, phase, frequency, amplitude, f, amp = FFT_breakdown(strain, stress, [i], qm_stress)
-        sf = butter_near_amp(wns[i], f, h)
-        
-        if sf >= 0.99:
-            comp_wave_1 += wave
-            max_index = i
-        else:
-            comp_wave_2 += wave
-            
-        label = 'PSD index: {:<2}'.format(i)
-        if i == 0: label += ' (DC-offset)'
-        elif i == wn_index: label += ' ({}$_c$)'.format(r'$\omega$')
-        else: label += ' (Amp={:>6.2f}, |H(jω)|={:.2f})'.format(amplitude, sf)
-        color, color_index = walk_colors(color_index, colors)
-        
-        ax3.plot(strain, wave, '-', lw=2, color=color, label=label)
-        ax2.plot(wns_stress[i], psd_stress[i], 'o', ms=8, color=color)
-    ax3.plot(strain, comp_wave_1, '-', lw=4, color='#2c7fb8ff', label='Fourier filter (indexes {}-{})'.format(lo, max_index))
-    ax3.plot(strain, comp_wave_2, '-', lw=4, color='#ff9d3aff', label='Fourier filter (indexes {}-{})'.format(max_index+1, hi))
-
-    ax3.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    #        (center, height, span, height)
+    anchor = (0.0,    1.2,    2.2,  0.1)
+    markerscale = 1
+    ncol = 2
+    ax1.legend(bbox_to_anchor=anchor, loc=2, ncol=ncol, mode='expand', fontsize=legend_fs_scale*fs, markerscale=markerscale)
+    
+    ax2.plot(data_150K['strain'], data_150K['stress'], '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
+    ax2.plot(data_150K['strain'], data_150K['filter'], '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
+    #ax2.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax2.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax2.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
+    ax2.tick_params(axis='both', which='major', labelsize=fs)
+    ax2.set_xlim(xlimits)
+    ax2.set_ylim(ylimits)
+    ax2.text(*label_rel_pos, '(b) - 150 K', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    
+    ax3.plot(data_75K['strain'], data_75K['stress'], '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
+    ax3.plot(data_75K['strain'], data_75K['filter'], '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
+    #ax3.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax3.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
     ax3.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
     ax3.tick_params(axis='both', which='major', labelsize=fs)
     ax3.set_xlim(xlimits)
-    ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-
-    ax4.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
-    comp_wave = np.zeros_like(stress)
-    lo = int(wn_index+1)
-    hi = int(2*wn_index)
-    for i in range(lo, hi+1):
-        wave, phase, frequency, amplitude, f, amp = FFT_breakdown(strain, stress, [i], qm_stress)
-        sf = butter_near_amp(wns[i], f, h)
-        comp_wave += wave
-        label = 'PSD index: {:<2}'.format(i)
-        label += ' (Amp={:>6.2f}, |H(jω)|={:.2f})'.format(amplitude, sf)
-        color, color_index = walk_colors(color_index, colors)
-        ax4.plot(strain, wave, '-', lw=2, color=color, label=label)
-        ax2.plot(wns_stress[i], psd_stress[i], 'o', ms=8, color=color)
-    ax4.plot(strain, comp_wave, '-', lw=4, color='#2c7fb8ff', label='Fourier filter (indexes {}-{})'.format(lo, hi))
-
-    ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax3.set_ylim(ylimits)
+    ax3.text(*label_rel_pos, '(c) - 75 K', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    
+    ax4.plot(data_38K['strain'], data_38K['stress'], '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
+    ax4.plot(data_38K['strain'], data_38K['filter'], '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
+    #ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax4.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
     ax4.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
     ax4.tick_params(axis='both', which='major', labelsize=fs)
     ax4.set_xlim(xlimits)
-    ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    ax4.set_ylim(ylimits)
+    ax4.text(*label_rel_pos, '(d) - 38 K', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
-    color = '#2c7fb8ff'
-    label = 'Fourier series wave amplitude'
-    ax5.plot(wns_stress, amp, '-', lw=2, color=color, label=label)
-    #ax5.axvline(wn_stress, color='#ff9d3aff', ls='--', lw=2, label='Normalized : {}$_c$={:.4f}'.format(r'$\omega$', wn_stress))
-    
-    ax5Top = ax5.secondary_xaxis('top', functions=(wn2freq, freq2wn))   
-    ax5Top.set_xlabel('Time Domain (THz)', fontsize=fs)
-    ax5Top.tick_params(axis='both', which='major', labelsize=fs)
-    
-    ax5.set_xlabel('Normalized Frequencies, {}'.format(r'$\omega$'), fontsize=fs)
-    ax5.set_ylabel('Wave Amplitude (MPa)', fontsize=fs, color='black')
-    ax5.tick_params(axis='x', which='major', labelsize=fs, colors='black')
-    ax5.tick_params(axis='y', which='major', labelsize=fs, colors='black')
-    
+    ax5.plot(data_19K['strain'], data_19K['stress'], '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
+    ax5.plot(data_19K['strain'], data_19K['filter'], '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
     #ax5.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-    ax5.text(*label_rel_pos, '(e)', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    ax5.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax5.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
+    ax5.tick_params(axis='both', which='major', labelsize=fs)
+    ax5.set_xlim(xlimits)
+    ax5.set_ylim(ylimits)
+    ax5.text(*label_rel_pos, '(e) - 19 K', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    
+    ax6.plot(data_10K['strain'], data_10K['stress'], '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
+    ax6.plot(data_10K['strain'], data_10K['filter'], '-', lw=4, color='#2c7fb8ff', label='Butterworth Filtered data\nat the PSD critical frequency')
+    #ax6.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax6.set_xlabel(r'True Strain, $\epsilon$', fontsize=fs)
+    ax6.set_ylabel(r'True Stress, $\sigma$ (MPa)', fontsize=fs)
+    ax6.tick_params(axis='both', which='major', labelsize=fs)
+    ax6.set_xlim(xlimits)
+    ax6.set_ylim(ylimits)
+    ax6.text(*label_rel_pos, '(f) - 10 K', transform=ax6.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        
+
         
     
     fig.tight_layout()
     plt.show()
-    basename = logfile[:logfile.rfind('.')] + '_Waves'
+    basename = 'logfiles/epoxy_temp_study/epoxy_temp_study'
     fig.savefig(basename+'.jpeg', dpi=300)
