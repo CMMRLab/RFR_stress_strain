@@ -278,7 +278,7 @@ if __name__ == "__main__":
     plt.rcParams['axes.prop_cycle'] = cycler(color=colors)
 
     # Set xlimits
-    xdelta, ydelta = 0.01, 10
+    xdelta, ydelta = 0.01, 50
     min_strain, max_strain = 0, 0.15
     min_stress, max_stress = 0, 400
     xlimits = (min_strain - xdelta, max_strain + xdelta)
@@ -373,6 +373,7 @@ if __name__ == "__main__":
     
     
     ax8.plot(temp, rms, '-o', ms=6, lw=2, color='tab:purple', label='RMS')
+    #ax8.set_yticks([0, 5, 10, 15, 20])
     ax8.set_xscale('log')
     ax8.xaxis.set_major_formatter(ScalarFormatter())
     ax8.text(*label_rel_pos, '(h)', transform=ax8.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
