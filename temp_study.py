@@ -259,6 +259,9 @@ if __name__ == "__main__":
     temp = [300,              150,              75,              38,              19,              10,              5]
     rms  = [data_300K['rms'], data_150K['rms'], data_75K['rms'], data_38K['rms'], data_19K['rms'], data_10K['rms'], data_5K['rms']]
     
+    print('temp =', temp)
+    print('res  =', rms)
+    
     
     #---------------------------------#
     # Plot the results of this method #

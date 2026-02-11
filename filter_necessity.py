@@ -315,8 +315,8 @@ ylimits = (min_stress - ydelta, max_stress + ydelta)
 
 # Set fontsize
 plt.close('all')
-fs = 14
-legend_fs_scale = 1.0
+fs = 16
+legend_fs_scale = 0.85
 label_rel_pos = (0.005, 0.98)
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12.5, 9))
 
@@ -332,7 +332,7 @@ color_yield   = 'tab:purple'
 
 label_epp     = 'Elastic–perfectly plastic (EPP)'
 label_wave    = 'Wave = {}*sin(2*π*strain/{})'.format(amp, wavelength)
-label_wave    = 'Mid-frequency error (Wave)'
+label_wave    = 'Mid-frequency noise (Wave)'
 label_thermal = 'Thermal signal = EPP + Wave'
 label_filter  = 'Butterworth(Thermal signal)'
 
@@ -394,6 +394,11 @@ ax4.plot(strain, filtered,     '-',  lw=6, zorder=1, color=color_filter, label=l
 
 ax4.plot(youngs_modulus_x, youngs_modulus_y, '--', lw=4, zorder=2, color=color_slope, label="RFR - Young's modulus = {:,.4f} (MPa)".format(youngs_modulus))
 ax4.plot([yp[0]], [yp[1]], 'o', ms=12, zorder=2, mfc=color_yield, markeredgecolor='black', label="RFR - Yield Point = {:,.4f} (MPa)".format(yp[1]))
+
+pe_RFR_E = 100*(youngs_modulus - modulus)/modulus 
+pe_RFR_y = 100*(yp[1] - y_stress)/y_stress
+print('RFR_Butterworth_E pe = {}'.format(pe_RFR_E))
+print('RFR_Butterworth_y pe = {}'.format(pe_RFR_y))
 
 ax4.legend(loc='upper right', bbox_to_anchor=(1, 0.35), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
 ax4.set_xlabel(r'Strain, $\epsilon$', fontsize=fs)
