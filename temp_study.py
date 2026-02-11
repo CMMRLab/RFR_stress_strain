@@ -39,6 +39,7 @@ Houghton, MI 49931
 import modules.read_log as read_log
 import modules.signals as signals
 import modules.rfr as rfr
+from scipy.optimize import curve_fit
 from cycler import cycler
 from matplotlib.ticker import ScalarFormatter
 import matplotlib.pyplot as plt
@@ -262,6 +263,21 @@ if __name__ == "__main__":
     print('temp =', temp)
     print('res  =', rms)
     
+    #---------------------#
+    # Fit the noise level #
+    #---------------------#
+    def noise_fit(x, A):
+        return A*np.sqrt(x)
+    
+    # Convert to numpy arrays and reverse
+    x = np.array(temp)[::-1]
+    y = np.array(rms)[::-1]
+    
+    # Fit the data
+    A, err = curve_fit(noise_fit,x,y)
+    x_space = np.linspace(x.min(),x.max(),100)
+    y_space = noise_fit(x_space, A)
+    
     
     #---------------------------------#
     # Plot the results of this method #
@@ -375,8 +391,10 @@ if __name__ == "__main__":
     ax7.text(*label_rel_pos, '(g) - 5 K', transform=ax7.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     
-    ax8.plot(temp, rms, '-o', ms=6, lw=2, color='tab:purple', label='RMS')
+    ax8.plot(temp, rms, 'o', ms=6, lw=2, color='tab:purple', label='Noise level')
+    ax8.plot(x_space, y_space, '-', lw=2, color='black', label=f'y = ${A[0]:0.3f} \\sqrt{{T}}$')
     #ax8.set_yticks([0, 5, 10, 15, 20])
+    ax8.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax8.set_xscale('log')
     ax8.xaxis.set_major_formatter(ScalarFormatter())
     ax8.text(*label_rel_pos, '(h)', transform=ax8.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
