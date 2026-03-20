@@ -39,6 +39,8 @@ Houghton, MI 49931
 import modules.read_log as read_log
 import modules.signals as signals
 import modules.rfr as rfr
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 from scipy.optimize import curve_fit
 from cycler import cycler
 from matplotlib.ticker import ScalarFormatter
@@ -257,11 +259,27 @@ if __name__ == "__main__":
     data_10K  = read_and_filter(logfile_10K,  stress_column, strain_column, wn, order, quadrant_mirror)
     data_5K   = read_and_filter(logfile_5K,   stress_column, strain_column, wn, order, quadrant_mirror)
     
-    temp = [300,              150,              75,              38,              19,              10,              5]
-    rms  = [data_300K['rms'], data_150K['rms'], data_75K['rms'], data_38K['rms'], data_19K['rms'], data_10K['rms'], data_5K['rms']]
+    temp   = [300,              150,              75,              38,              19,              10,              5]
+    rms    = [data_300K['rms'], data_150K['rms'], data_75K['rms'], data_38K['rms'], data_19K['rms'], data_10K['rms'], data_5K['rms']]
+    wns    = [data_300K['wn'], data_150K['wn'], data_75K['wn'], data_38K['wn'], data_19K['wn'], data_10K['wn'], data_5K['wn']]
+    wns    = [float(i) for i in wns]
+    print('wns = ', wns)
     
-    print('temp =', temp)
-    print('res  =', rms)
+    # Convert wn to THz
+    # Define sampling rate and number of data points
+    strain = data_300K['strain'] # all temp studies where done at the same strain rate and strain
+    dx = np.mean(np.abs(np.diff(strain)))
+    if dx != 0: 
+        sample_rate = 1/dx # sampling rate
+    else: sample_rate = strain.shape[0]/(np.max(strain) - np.min(strain))    
+    def wn2freq(wns): # Tera-hertz
+        return wns*(0.5*sample_rate)*(strain_rate*1e-12)
+    
+    def freq2wn(freq):
+        return freq / ((0.5*sample_rate) * (strain_rate*1e-12))
+    
+    wn_THz = [float(wn2freq(i)) for i in wns]
+    print('wn_THz = ', wn_THz)
     
     #---------------------#
     # Fit the noise level #
@@ -272,10 +290,13 @@ if __name__ == "__main__":
     # Convert to numpy arrays and reverse
     x = np.array(temp)[::-1]
     y = np.array(rms)[::-1]
+    print('x = ', x)
+    print('y = ', y)
     
     # Fit the data
-    A, err = curve_fit(noise_fit,x,y)
-    x_space = np.linspace(x.min(),x.max(),100)
+    A, err = curve_fit(noise_fit, x, y)
+    x_space = np.linspace(x.min(), x.max(), 1000)
+    x_space = np.linspace(0, x.max(), 1000)
     y_space = noise_fit(x_space, A)
     
     
@@ -312,7 +333,24 @@ if __name__ == "__main__":
     # Start plotting data
     plt.close('all')
     dim = 2.25
-    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2, figsize=(2*(1.2*dim), 4*dim))
+    #fig, ((ax1, ax2, ax3), (ax4, ax5, ax6), (ax7, ax8, ax9), (ax10, ax11, ax12)) = plt.subplots(4, 3, figsize=(3*(1.3*dim), 4*dim))
+    
+    fig = plt.figure(figsize=(3*(1.3*dim), 4.5*dim))
+    gs = fig.add_gridspec(4, 3, height_ratios=[1, 1, 1, 1.6])
+    
+    ax1  = fig.add_subplot(gs[0, 0])
+    ax2  = fig.add_subplot(gs[0, 1])
+    ax3  = fig.add_subplot(gs[0, 2])
+    
+    ax4  = fig.add_subplot(gs[1, 0])
+    ax5  = fig.add_subplot(gs[1, 1])
+    ax6  = fig.add_subplot(gs[1, 2])
+    
+    ax7  = fig.add_subplot(gs[2, 0])
+    ax8  = fig.add_subplot(gs[2, 1])
+    ax9  = fig.add_subplot(gs[2, 2])
+    
+    ax10 = fig.add_subplot(gs[3, :])   # spans all 3 columns
 
 
     ax1.plot(data_300K['strain'], data_300K['stress'], '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
@@ -325,7 +363,7 @@ if __name__ == "__main__":
     ax1.text(*label_rel_pos, '(a) - 300 K', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     #        (center, height, span, height)
-    anchor = (0.0,    1.3,    2.2,  0.1)
+    anchor = (0.4,    1.3,    3.2,  0.1)
     markerscale = 1
     ncol = 2
     ax1.legend(bbox_to_anchor=anchor, loc=2, ncol=ncol, mode='expand', fontsize=legend_fs_scale*fs, markerscale=markerscale)
@@ -390,22 +428,118 @@ if __name__ == "__main__":
     ax7.set_ylim(ylimits)
     ax7.text(*label_rel_pos, '(g) - 5 K', transform=ax7.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
-    
-    ax8.plot(temp, rms, 'o', ms=6, lw=2, color='tab:purple', label='Noise level')
-    ax8.plot(x_space, y_space, '-', lw=2, color='black', label=f'y = ${A[0]:0.3f} \\sqrt{{T}}$')
-    #ax8.set_yticks([0, 5, 10, 15, 20])
-    ax8.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-    ax8.set_xscale('log')
-    ax8.xaxis.set_major_formatter(ScalarFormatter())
-    ax8.text(*label_rel_pos, '(h)', transform=ax8.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-    
+    ax8.plot(temp, rms, 'o', ms=6,  lw=2, zorder=2, color='tab:purple', label='Noise level')
+    ax8.plot(x_space, y_space, '-', lw=2, zorder=1, color='black', label=f'y = ${A[0]:0.3f} \\sqrt{{T}}$')
+    ax8.set_yticks([0, 5, 10, 15])
+    ax8.legend(loc='upper right', bbox_to_anchor=(1.0, 0.425), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    #ax8.set_xscale('log')
+    #ax8.xaxis.set_major_formatter(ScalarFormatter())
+    ax8.text(*label_rel_pos, '(h) - Noise level metric', transform=ax8.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     ax8.set_xlabel('Temperature (K)', fontsize=fs)
     ax8.set_ylabel('mean(abs(residuals))', fontsize=fs)
     ax8.tick_params(axis='both', which='major', labelsize=fs)
-
-        
     
+    ax9.plot(temp, wns, 'o', ms=6,  lw=2, zorder=2, color='tab:purple', label='{}$_c$'.format(r'$\omega$'))
+
+    secax = ax9.secondary_yaxis('right', functions=(wn2freq, freq2wn))
+    secax.set_ylabel('Frequency (THz)', fontsize=fs)
+    secax.tick_params(axis='y', which='major', labelsize=fs)
+        
+    ax9.text(*label_rel_pos, '(i) - {}$_c$'.format(r'$\omega$'), transform=ax9.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    ax9.set_ylim((0.004, 0.007))
+    ax9.set_xlabel('Temperature (K)', fontsize=fs)
+    ax9.set_ylabel('Normalized Frequencies, {}$_c$'.format(r'$\omega$'), fontsize=fs)
+    ax9.tick_params(axis='both', which='major', labelsize=fs)
+    
+    
+    # PSD's
+    #color = 'tab:blue'
+    #ax10.stem(data_300K['wns'], data_300K['psd'], linefmt=color, basefmt=color, markerfmt='.', label='$|X(f)|^2/N$')
+    
+    # PSD's
+    temps = [300, 150, 75, 38, 19, 10, 5]
+    datasets = [data_300K, data_150K, data_75K, data_38K, data_19K, data_10K, data_5K]
+    
+    # Create inset axis (inside ax10)
+    axins = inset_axes(ax10, width="35%", height="45%", loc='upper center',
+                       borderpad=1.2)
+
+    # Red -> blue color gradient
+    cmap = plt.cm.coolwarm
+    colors = cmap(np.linspace(1, 0, len(temps)))   # 300 K red, 5 K blue    
+    for T, data, color in zip(temps, datasets, colors):
+        markerline, stemlines, baseline = ax10.stem(
+            data['wns'], data['psd'], linefmt='-', markerfmt='.', basefmt=' '
+        )
+
+        plt.setp(stemlines, color=color, linewidth=1.2, alpha=0.8)
+        plt.setp(markerline, color=color, markersize=3)
+        markerline.set_label('{} K ${}_{}$'.format(T, ' ', ' '))
+        
+        # also show cutoff wn
+        markerline, stemlines, baseline = axins.stem(data['wns'], data['psd'], linefmt='-', markerfmt='.', basefmt=' ')
+        plt.setp(stemlines, color=color, linewidth=2.0, alpha=1.0)
+        plt.setp(markerline, color=color, markersize=10)
+        markerline.set_label('{} K ${}_{}$'.format(T, ' ', ' '))
+
+    
+    for T, data, color in zip(temps, datasets, colors):
+        # Add vertical line at the critical normalized frequency
+        ax10.axvline(float(data['wn']), color=color, linestyle='--', linewidth=1.5, alpha=0.9, label='{}$_c$'.format(r'$\omega$'))
+        axins.axvline(float(data['wn']), color=color, linestyle='--', linewidth=1.5, alpha=1.0)
+    
+    # Add thermostat and barostat frequencies
+    dt = 1.0 # timestep (fs)
+    thermostat = 100*dt # LAMMPS doc: $(100.0*dt)
+    barostat   = 1000*dt # LAMMPS doc: $(1000.0*dt)
+    
+    # Convert damping times to THz
+    thermostat_THz = 1000.0 / thermostat
+    barostat_THz   = 1000.0 / barostat
+
+    # Convert THz to normalized frequency
+    fs_time = strain_rate / dx
+    f_N = 0.5 * fs_time   # Nyquist frequency in Hz
+    def control2wn(freq):
+        return freq / (f_N * 1e-12)
+    
+    thermostat_wn = control2wn(thermostat_THz)
+    barostat_wn   = control2wn(barostat_THz)
+    
+    print('thermostat_THz =', thermostat_THz)
+    print('barostat_THz   =', barostat_THz)
+    print('thermostat_wn  =', thermostat_wn)
+    print('barostat_wn    =', barostat_wn)
+
+    # ax10.axvline(thermostat_wn, color='purple', linestyle='--', linewidth=1.5,
+    #              label=f'Thermostat ({thermostat_THz:.2f} THz)')
+    # ax10.axvline(barostat_wn, color='green', linestyle=':', linewidth=1.5,
+    #              label=f'Barostat ({barostat_THz:.2f} THz)')
+    
+    ax10.text(*label_rel_pos, '(j)   -   log(PSD)', transform=ax10.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    ax10.set_xlabel('Normalized Frequencies, {}'.format(r'$\omega$'), fontsize=fs)
+    ax10.set_ylabel('Power Spectral Density', fontsize=fs)
+    ax10.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=2,
+                fontsize=0.95*legend_fs_scale*fs, markerscale=6.0)
+    #ax10.set_xscale('log')
+    ax10.set_yscale('log')
+    ax10.set_ylim((1, 1e10))
+    
+    axins.set_yscale('log')
+    axins.set_xlim(-0.001, 0.01)
+    axins.set_ylim(1, 1e9)
+    axins.set_xticklabels([])
+    axins.set_yticklabels([])
+    #axins.tick_params(axis='both', which='major', labelsize=0.7*fs)
+    mark_inset(ax10, axins, loc1=2, loc2=4, fc="none", ec="0.5")
+    
+    ax11 = ax10.secondary_xaxis('top', functions=(wn2freq, freq2wn))   
+    ax11.set_xlabel('Frequency (THz)', fontsize=fs)
+    ax11.tick_params(axis='both', which='major', labelsize=fs)
+    
+
     fig.tight_layout()
+    #fig.tight_layout(rect=[0, 0, 1, 0.98])
     plt.show()
     basename = 'logfiles/epoxy_temp_study/epoxy_temp_study'
     fig.savefig(basename+'.jpeg', dpi=300)
