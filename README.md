@@ -20,4 +20,4 @@ This directory holds examples on the RFR-method for analyzing molecular dynamic 
     - pip install PACKAGE
 
 ## Terms of use
-- You agree to acknowledge the use of the RFR-methond in any reports or publications of results obtained with the RFR-method by citing "Understanding and Interpreting Stress-Strain Curves from Molecular Dynamics Simulation of Amorphous Polymers" at https://doi.org/10.26434/chemrxiv-2025-fk935.
+- You agree to acknowledge the use of the RFR-methond in any reports or publications of results obtained with the RFR-method by citing "Automatic determination of mechanical properties from Molecular Dynamic Stress-Strain curves using Regression Fringe Response" at https://doi.org/10.1038/s44172-026-00669-6.

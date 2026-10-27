@@ -50,7 +50,19 @@ import numpy as np
 ##########
 # logfile to read in
 logfile = 'logfiles/tensile_1_EPON_862_pxld_86.8_replicate_4_FF_PCFF.log.lammps'
+strain_direction = 'x'
 
+logfile = 'logfiles/tensile_2_AroCy_L10_pxld_97_replicate_1_FF_PCFF.log.lammps'
+strain_direction = 'y'
+
+logfile = 'logfiles/tensile_2_PBZ_pxld_88_replicate_2_FF_PCFF.log.lammps'
+strain_direction = 'y'
+
+# logfile = 'logfiles/tensile_3_PBZ_pxld_87_replicate_5_FF_PCFF.log.lammps'
+# strain_direction = 'z'
+
+logfile = 'logfiles/tensile_1_PEEK_pxld_90_replicate_3_FF_PCFF.log.lammps'
+strain_direction = 'x'
 
 # Set some column keywords to find sections in logfile with thermo data.
 # *NOTE: You minimally need one keyword where 'Step' is a good choice.*
@@ -72,7 +84,7 @@ sections = 1
 
 
 # Set strain direction of 'x' or 'y' or 'z'
-strain_direction = 'x'
+#strain_direction = 'x'
 
 
 # Regression fringe response settings
@@ -342,8 +354,8 @@ if __name__ == "__main__":
     # Plot the results of this method #
     #---------------------------------#
     fs = 11 # Set fontsize
-    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(12, 9))
-    ax1.plot(strain, stress, '.', ms=4, color='tab:cyan', label='LAMMPS data')
+    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(14, 7))
+    ax1.plot(strain, stress, '.', ms=4, color='#bbbbbbff', label='LAMMPS data')
     ax1.plot(strain, filtered_stress, '-', lw=2, color='tab:blue', label='Filtered data')
     if x_yield_d2 is not None and y_yield_d2 is not None:
         ax1.plot(x_yield, y_yield, 'o', ms=8, color='tab:green', label='Yield point ({:.4f}, {:.4f})'.format(x_yield, y_yield))
@@ -353,7 +365,7 @@ if __name__ == "__main__":
     ax1.set_ylabel('True Stress (MPa)', fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
     
-    ax2.plot(strain, trans1, '.', ms=4, color='tab:cyan', label='LAMMPS data ({})'.format(trans1_column))
+    ax2.plot(strain, trans1, '.', ms=4, color='#bbbbbbff', label='LAMMPS data ({})'.format(trans1_column))
     ax2.plot(strain, filtered_trans1, '-', lw=2, color='tab:blue', label='Filtered data ({})'.format(trans1_column))
     ax2.plot(nu_1_x, nu_1_y, '-', lw=4, color='tab:orange', label="Poisson's ratio={:.4f}".format(-nu_1_coeffs[1]))
     ax2.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=fs)
@@ -361,7 +373,7 @@ if __name__ == "__main__":
     ax2.set_ylabel('Transverse strain', fontsize=fs)
     ax2.tick_params(axis='both', which='major', labelsize=fs)
     
-    ax3.plot(strain, trans2, '.', ms=4, color='tab:cyan', label='LAMMPS data ({})'.format(trans2_column))
+    ax3.plot(strain, trans2, '.', ms=4, color='#bbbbbbff', label='LAMMPS data ({})'.format(trans2_column))
     ax3.plot(strain, filtered_trans2, '-', lw=2, color='tab:blue', label='Filtered data ({})'.format(trans2_column))
     ax3.plot(nu_2_x, nu_2_y, '-', lw=4, color='tab:orange', label="Poisson's ratio={:.4f}".format(-nu_2_coeffs[1]))
     ax3.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=fs)
