@@ -200,6 +200,16 @@ def butter_lowpass_filter(xdata, ydata, wn, order, quadrant_mirror):
                       The quadrant mirror string used for the filter implementation.
     """
     
+    #-------------------------------------------------------------------------------------#
+    # Check to see if xdata is increassing or decreasing. If xdata is decreasing, we will #
+    # flip before filtering and then flip the filtered data back to the orginal direcion. #
+    #-------------------------------------------------------------------------------------#
+    decreasing_x = False
+    if xdata[0] >= xdata[-1]:
+        decreasing_x = True
+        xdata = xdata[::-1]
+        ydata = ydata[::-1]
+    
     #-----------------------------------------------------------------------#
     # Automagically detect which are the best quadrant mirroring locations #
     #-----------------------------------------------------------------------#
@@ -387,14 +397,14 @@ def data_extension(xdata, ydata, lo=1, hi=1):
     
     # Perform hi padding operations
     if hi == 2:
-        hi_xdata = -min(xdata) + max(xdata) + xdata[index+1:]  
+        hi_xdata = (max(xdata) - min(xdata)) + xdata[index+1:]  
         hi_ydata = ydata[::-1][index+1:]
     elif hi == 3:
-        hi_xdata = -min(xdata) + max(xdata) + xdata[index+1:]  
-        hi_ydata = ydata[index] - ydata[::-1][index+1:] + 2*ydata[-(index+1)] + ydata[index]
+        hi_xdata = (max(xdata) - min(xdata)) + xdata[index+1:]  
+        hi_ydata = 2*ydata[-(index+1)] - ydata[::-1][index+1:]
     elif hi == 4:
-        hi_xdata = -min(xdata) + max(xdata) + xdata[index+1:]  
-        hi_ydata = ydata[-(index+1)] + ydata[index+1:]
+        hi_xdata = (max(xdata) - min(xdata)) + xdata[index+1:]  
+        hi_ydata = (ydata[-(index+1)] - ydata[index]) + ydata[index+1:]
     else:
         hi_xdata = np.array([])
         hi_ydata = np.array([])
